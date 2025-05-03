@@ -1,4 +1,29 @@
 # Triana API
+Backend API for Triana, built with Go and Gin.
+
+## Setup
+1. Clone the repository:
+```bash
+git clone git@github.com:BeeCodingAI/triana-api.git
+```
+2. Navigate to the project directory:
+```bash
+cd triana-api
+```
+3. Install the required dependencies:
+```bash
+go mod tidy
+```
+4. Set up the environment variables. Create a `.env` file in the root directory and add follow .env.example.
+5. Run the application:
+```bash
+go run main.go
+```
+or use CompileDaemon to watch and run the application:
+```bash
+CompileDaemon -command="go run main.go"
+```
+6. The API will be available at `http://localhost:8080`, go to main.go to change the port.
 
 ## Error Body Format
 When an error occurs, the API will send an error HTTP status code along with a JSON response body. The format of the error response will be as follows:
@@ -9,7 +34,7 @@ When an error occurs, the API will send an error HTTP status code along with a J
 }
 ```
 Other data will be included for the following cases:
-- **Validation Error**: If the request body is not valid, the API will return a 422 status code with a message indicating the validation error.
+- **Validation Error**: If the request body is not valid, the API will return a 400 status code with a message indicating the validation error.
 ```json
 {
     "message": "Error message",
@@ -18,6 +43,7 @@ Other data will be included for the following cases:
     }
 }
 ```
+
 ## APIs
 ### **POST** /register
 Register a new user. The request body should contain the user's email and password. The response will include a success message and the user (id, email and name).
