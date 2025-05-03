@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/BeeCodingAI/triana-api/models"
 	"github.com/joho/godotenv"
 )
 
@@ -40,6 +41,20 @@ func ConnectDatabase() {
 	}
 
 	log.Println("Connected to database successfully")
+
+	// migrate models to databbase
+	err = db.AutoMigrate(
+		&models.User{},
+		&models.Session{},
+		&models.Queue{},
+		&models.Doctor{},
+	)
+
+	if err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
+
+	log.Println("Database migrated successfully")
 
 	// set db to global variable
 	DB = db
