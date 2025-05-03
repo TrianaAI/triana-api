@@ -1,0 +1,60 @@
+package services
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/BeeCodingAI/triana-api/config"
+	"github.com/BeeCodingAI/triana-api/models"
+	"github.com/BeeCodingAI/triana-api/schemas"
+	"gorm.io/gorm"
+)
+
+func RegisterUser(input schemas.RegisterUserInput) (*models.User, error) {
+	// Generate OTP
+	otp := generateOTP()
+
+	// Check if the user already exists in the database
+	var existingUser models.User
+	err := config.DB.Preload("Sessions").Where("email = ?", input.Email).First(&existingUser).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// User does not exist, create a new user
+		newUser := models.User{
+			Name:        input.Name,
+			Email:       input.Email,
+			Nationality: input.Nationality,
+			DOB:         input.DOB,
+			OTP:         otp,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		if err := config.DB.Create(&newUser).Error; err != nil {
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+		existingUser = newUser
+
+	} else if err == nil {
+		// update existing user with new OTP
+		existingUser.OTP = otp
+		existingUser.Name = input.Name
+		existingUser.Nationality = input.Nationality
+		existingUser.DOB = input.DOB
+
+		existingUser.UpdatedAt = time.Now()
+
+		if err := config.DB.Save(&existingUser).Error; err != nil {
+			return nil, fmt.Errorf("failed to update user: %w", err)
+		}
+	} else {
+		// Some other error occurred while checking for existing user
+		return nil, fmt.Errorf("failed to check for existing user: %w", err)
+	}
+
+	// TODO: Send OTP to user's email
+
+	// registration success, return the user object
+	return &existingUser, nil
+}
