@@ -19,9 +19,9 @@ go mod tidy
 ```bash
 go run main.go
 ```
-or use CompileDaemon to watch and run the application:
+or use `air` for live reloading during development:
 ```bash
-CompileDaemon -command="go run main.go"
+air
 ```
 6. The API will be available at `http://localhost:8080`, go to main.go to change the port.
 
@@ -50,10 +50,10 @@ Register a new user. The request body should contain the user's email and passwo
 - **Example Request**:
 ```json
 {
-    "name": "new name",
+    "name": "Mario",
     "email" : "new@gmail.com",
-    "nationality": "indonesia",
-    "dob": "2025/04/01",
+    "nationality": "Indonesian",
+    "dob": "2004-04-01", // use YYYY-MM-DD format
     "weight": 2,
     "height": 165.6,
     "heartrate": 98.6,
@@ -67,7 +67,7 @@ Register a new user. The request body should contain the user's email and passwo
     "message": "User registered successfully",
     "user": {
         "id": "some-uuid",
-        "name": "new name",
+        "name": "Mario",
         "email" : "new@gmail.com"
     },
 }
@@ -78,14 +78,32 @@ Verify the OTP sent to the user's email. To avoid complexity, send the same data
 - **Example Request**:
 ```json
 {
-    "name": "new 20000",
+    "name": "Mario",
     "email" : "new@gmail.com",
-    "nationality": "indonesia",
-    "dob": "2025/04/01",
+    "nationality": "Indonesian",
+    "dob": "2004-04-01", // use YYYY-MM-DD format
     "weight": 2,
     "height": 165.6,
     "heartrate": 98.6,
     "bodytemp": 35.5,
     "OTP": "132267"
+}
+```
+
+### **POST** /session/:id
+This route is for user to send a new message to the chat session. The request body should contain only the new message. The response includes the reply from the AI, the session ID, message and the next action to be taken.
+- **Example Request**:
+```json
+{
+    "new_message": "What is my name and age?"
+}
+```
+- **Example Response**:
+```json
+{
+    "message": "Chat history updated successfully",
+    "next_action": "CONTINUE_CHAT",
+    "reply": "Your name is Mario, and your age is 21 years, 1 month, and 3 days.\n",
+    "session_id": "513f8f75-2a39-4178-9555-8b07f3dff475"
 }
 ```

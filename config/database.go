@@ -9,18 +9,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/BeeCodingAI/triana-api/models"
-	"github.com/joho/godotenv"
 )
 
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	// load .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	// get database connection string from .env file
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
