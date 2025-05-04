@@ -46,8 +46,30 @@ func GenerateSessionResponse(c *gin.Context) {
 
 	// send the response back to the client
 	c.JSON(200, gin.H{
-		"message":    "Chat history updated successfully",
-		"reply":      reply,
-		"session_id": session_id,
+		"message":     "Chat history updated successfully",
+		"reply":       reply,
+		"session_id":  session_id,
+		"next_action": "CONTINUE_CHAT",
 	})
+}
+
+func GetActiveSession(c *gin.Context) {
+	session_id := c.Param("id")
+
+	var session models.Session
+
+	session, err := services.GetSessionData(session_id)
+	if err != nil {
+		c.JSON(404, gin.H{"message": "Session not found"})
+		return
+	}
+
+	// make sure sessoin is active (prediagnosis is not done yet)
+	if session.Prediagnosis != "" {
+		c.JSON(400, gin.H{"message": "Session is completed"})
+		return
+	}
+
+	// send the response back to the client
+	c.JSON(200, session)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -50,7 +49,7 @@ func GetLLMResponse(newMessage string, session models.Session) (string, error) {
 
 	// build the system prompt using the session data
 	systemPromptText := buildSystemPrompt(session)
-	log.Printf("System Prompt: %s\n", systemPromptText)
+	// log.Printf("System Prompt: %s\n", systemPromptText)
 
 	// add system prompt to the history
 	systemPrompt := genai.NewContentFromText(systemPromptText, genai.RoleUser)
@@ -64,7 +63,7 @@ func GetLLMResponse(newMessage string, session models.Session) (string, error) {
 		}
 	}
 
-	chat, _ := client.Chats.Create(ctx, "gemini-2.0-flash", nil, genaiHistory)
+	chat, _ := client.Chats.Create(ctx, os.Getenv("GEMINI_MODEL"), nil, genaiHistory)
 	res, _ := chat.SendMessage(ctx, genai.Part{Text: newMessage})
 
 	// get the response from the LLM
@@ -135,4 +134,17 @@ func buildSystemPrompt(session models.Session) string {
 	doctorListText := fmt.Sprintf("\nHere are the doctors available [ID] Name (Specialty):\n%s", doctorList)
 	systemPromptText := fmt.Sprintf(os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText)
 	return systemPromptText
+}
+
+func GetSessionData(sessionId string) (models.Session, error) {
+	// check if session_id exists in the database
+	var session models.Session
+
+	err := config.DB.Preload("User").Where("id = ?", sessionId).First(&session).Error
+
+	if err != nil {
+		return models.Session{}, fmt.Errorf("session not found: %w", err)
+	}
+
+	return session, nil
 }

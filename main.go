@@ -27,6 +27,7 @@ func main() {
 	r.POST("/verify-otp", controllers.VerifyOTP)
 
 	// session routes
+	r.GET("/session/:id", controllers.GetActiveSession)
 	r.POST("/session/:id", controllers.GenerateSessionResponse)
 
 	// test routes
