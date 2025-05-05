@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -45,7 +47,7 @@ func GetLLMResponse(newMessage string, session models.Session) (string, error) {
 
 	// build the system prompt using the session data
 	systemPromptText := buildSystemPrompt(session)
-	// log.Printf("System Prompt: %s\n", systemPromptText)
+	log.Printf("System Prompt: %s\n", systemPromptText)
 
 	// add system prompt to the history
 	systemPrompt := genai.NewContentFromText(systemPromptText, genai.RoleUser)
@@ -116,8 +118,32 @@ func buildSystemPrompt(session models.Session) string {
 	for _, doctor := range doctors {
 		doctorList = append(doctorList, fmt.Sprintf("- [%s] %s (%s)\n", doctor.ID, doctor.Name, doctor.Specialty))
 	}
-	doctorListText := fmt.Sprintf("\nHere are the doctors available [ID] Name (Specialty):\n%s", doctorList)
-	systemPromptText := fmt.Sprintf(os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText)
+	doctorListText := fmt.Sprintf("\nHere are the doctors available [ID] Name (Specialty):\n%s", strings.Join(doctorList, ""))
+
+	// Get history of sessions
+	var history []models.Session = GetHistory(session)
+
+	// Convert history of sessions to a string representation
+	var historyList []string
+	if len(history) > 0 {
+		for _, sessionItem := range history {
+			historyList = append(historyList, fmt.Sprintf(
+				"[%s]\nWeight: %f\nHeight: %f\nHeartrate: %f\nBodytemp: %f\nPrediagnosis: %s\n",
+				sessionItem.CreatedAt.Format("2006-01-02 15:04:05"),
+				sessionItem.Weight,
+				sessionItem.Height,
+				sessionItem.Heartrate,
+				sessionItem.Bodytemp,
+				sessionItem.Prediagnosis,
+			))
+		}
+	} else {
+		historyList = append(historyList, "No previous sessions found.\n")
+	}
+	historyListText := fmt.Sprintf("\nHere are the previous sessions:\n%s", strings.Join(historyList, ""))
+
+	systemPromptText := fmt.Sprintf("%s %s %s %s", os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText, historyListText)
+
 	return systemPromptText
 }
 
@@ -137,4 +163,15 @@ func GetSessionData(sessionId string) (models.Session, error) {
 	}
 
 	return session, nil
+}
+
+func GetHistory(session models.Session) []models.Session {
+	var history []models.Session
+	err := config.DB.Where("user_id = ?", session.User.ID).Where("id != ?", session.ID).Order("created_at DESC").Find(&history).Error
+	if err != nil {
+		fmt.Printf("Error fetching session history: %v\n", err)
+		return []models.Session{} // Return an empty slice if there's an error
+	}
+
+	return history
 }
