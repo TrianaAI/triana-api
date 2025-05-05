@@ -2,18 +2,20 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
-	"github.com/BeeCodingAI/triana-api/schemas"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"google.golang.org/genai"
+	"gorm.io/gorm"
 )
 
-func convertMessageToGenaiContent(message schemas.Message) *genai.Content {
+func convertMessageToGenaiContent(message models.Message) *genai.Content {
 	// Determine the role of the message
 	var role genai.Role
 	if message.Role == "user" {
@@ -29,7 +31,7 @@ func convertMessageToGenaiContent(message schemas.Message) *genai.Content {
 	return content
 }
 
-func GetLLMResponse(newMessage string, session models.Session) (string, error) {
+func GetLLMResponse(newMessage string, session *models.Session) (string, error) {
 	// initialize the Gemini client with your API key and backend
 	ctx := context.Background()
 	client, _ := genai.NewClient(ctx, &genai.ClientConfig{
@@ -37,19 +39,15 @@ func GetLLMResponse(newMessage string, session models.Session) (string, error) {
 		Backend: genai.BackendGeminiAPI,
 	})
 
-	// from the chat history, unmarshal the JSON to a slice of Message structs
-	var storedHistory []schemas.Message
-	err := json.Unmarshal(session.ChatHistory, &storedHistory)
-	if err != nil {
-		return "", fmt.Errorf("error unmarshalling chat history: %w", err)
-	}
+	// the chat history is stored as a one-to-many relationship in the database
+	var storedHistory []models.Message = session.Messages
 
 	// build the genai history
 	var genaiHistory []*genai.Content
 
 	// build the system prompt using the session data
 	systemPromptText := buildSystemPrompt(session)
-	// log.Printf("System Prompt: %s\n", systemPromptText)
+	log.Printf("System Prompt: %s\n", systemPromptText)
 
 	// add system prompt to the history
 	systemPrompt := genai.NewContentFromText(systemPromptText, genai.RoleUser)
@@ -83,35 +81,24 @@ func UpdateChatHistory(sessionId string, newMessage string, LLMResponse string) 
 		return fmt.Errorf("error fetching session: %v", err)
 	}
 
-	// unmarshal the chat history to a slice of Message structs
-	var chatHistory []schemas.Message
-	err = json.Unmarshal(session.ChatHistory, &chatHistory)
-	if err != nil {
-		return fmt.Errorf("error unmarshalling chat history: %v", err)
-	}
-
 	// append the new message and LLM response to the chat history
-	newUserMessage := schemas.Message{Role: "user", Content: newMessage}
-	newLLMResponse := schemas.Message{Role: "triana", Content: LLMResponse}
-	chatHistory = append(chatHistory, newUserMessage, newLLMResponse)
+	now := time.Now()
+	newUserMessage := models.Message{Role: "user", Content: newMessage, SessionID: session.ID, CreatedAt: now, UpdatedAt: now}
+	newLLMResponse := models.Message{Role: "triana", Content: LLMResponse, SessionID: session.ID, CreatedAt: now.Add(time.Millisecond), UpdatedAt: now.Add(time.Millisecond)}
 
-	// marshal the updated chat history back to JSON
-	updatedChatHistory, err := json.Marshal(chatHistory)
-	if err != nil {
-		return fmt.Errorf("error marshalling updated chat history: %v", err)
+	// save the new messages to the database
+	if err := config.DB.Create(&newUserMessage).Error; err != nil {
+		return fmt.Errorf("error saving user message: %v", err)
 	}
 
-	// update the session's chat history in the database
-	session.ChatHistory = updatedChatHistory
-	err = config.DB.Save(&session).Error
-	if err != nil {
-		return fmt.Errorf("error updating session: %v", err)
+	if err := config.DB.Create(&newLLMResponse).Error; err != nil {
+		return fmt.Errorf("error saving LLM response: %v", err)
 	}
 
 	return nil
 }
 
-func buildSystemPrompt(session models.Session) string {
+func buildSystemPrompt(session *models.Session) string {
 	// Build the system prompt using the user's data
 	userDataText := fmt.Sprintf(
 		"\nHere's the user's data: \n\nName:%s\nAge:%s\nNationality:%s\nWeight: %d\nHeight: %d\nHeartrate: %d\nBodytemp: %f\n",
@@ -131,8 +118,33 @@ func buildSystemPrompt(session models.Session) string {
 	for _, doctor := range doctors {
 		doctorList = append(doctorList, fmt.Sprintf("- [%s] %s (%s)\n", doctor.ID, doctor.Name, doctor.Specialty))
 	}
-	doctorListText := fmt.Sprintf("\nHere are the doctors available [ID] Name (Specialty):\n%s", doctorList)
-	systemPromptText := fmt.Sprintf(os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText)
+	doctorListText := fmt.Sprintf("\nHere are the doctors available [ID] Name (Specialty):\n%s", strings.Join(doctorList, ""))
+
+	// Get history of sessions
+	var history []models.Session = GetHistory(session)
+
+	// Convert history of sessions to a string representation
+	var historyList []string
+	if len(history) > 0 {
+		for _, sessionItem := range history {
+			historyList = append(historyList, fmt.Sprintf(
+				"[%s]\nWeight: %f\nHeight: %f\nHeartrate: %f\nBodytemp: %f\nPrediagnosis: %s\n",
+				sessionItem.CreatedAt.Format("2006-01-02 15:04:05"),
+				sessionItem.Weight,
+				sessionItem.Height,
+				sessionItem.Heartrate,
+				sessionItem.Bodytemp,
+				sessionItem.Prediagnosis,
+			))
+		}
+	} else {
+		historyList = append(historyList, "No previous sessions found.\n")
+	}
+	historyListText := fmt.Sprintf("\nHere are the previous sessions:\n%s", strings.Join(historyList, ""))
+
+	// Build the system prompt text
+	systemPromptText := fmt.Sprintf("%s %s %s %s\nCurrent Time: %s", os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText, historyListText, time.Now().Format("2006-01-02 15:04:05"))
+
 	return systemPromptText
 }
 
@@ -140,11 +152,27 @@ func GetSessionData(sessionId string) (models.Session, error) {
 	// check if session_id exists in the database
 	var session models.Session
 
-	err := config.DB.Preload("User").Where("id = ?", sessionId).First(&session).Error
+	err := config.DB.
+		Preload("User").
+		Preload("Messages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC") // Order messages by created_at in descending order (for latest messages first)
+		}).
+		Where("id = ?", sessionId).First(&session).Error
 
 	if err != nil {
 		return models.Session{}, fmt.Errorf("session not found: %w", err)
 	}
 
 	return session, nil
+}
+
+func GetHistory(session *models.Session) []models.Session {
+	var history []models.Session
+	err := config.DB.Where("user_id = ?", session.User.ID).Where("id != ?", session.ID).Order("created_at DESC").Find(&history).Error
+	if err != nil {
+		fmt.Printf("Error fetching session history: %v\n", err)
+		return []models.Session{} // Return an empty slice if there's an error
+	}
+
+	return history
 }

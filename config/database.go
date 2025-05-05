@@ -41,6 +41,7 @@ func ConnectDatabase() {
 		&models.Session{},
 		&models.Queue{},
 		&models.Doctor{},
+		&models.Message{},
 	)
 
 	if err != nil {
