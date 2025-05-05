@@ -52,6 +52,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
           ssh -v -o StrictHostKeyChecking=no ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} << EOF
+            echo "${{ env.DOCKER_PAT }}" | docker login --username ${{ env.DOCKER_USERNAME }} --password-stdin
             docker pull ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPOSITORY_NAME }}:${{ env.DOCKER_TAG }}
             docker stop ${{ env.DOCKER_REPOSITORY_NAME }} || true
             docker rm ${{ env.DOCKER_REPOSITORY_NAME }} || true
