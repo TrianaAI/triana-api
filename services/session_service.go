@@ -142,7 +142,8 @@ func buildSystemPrompt(session *models.Session) string {
 	}
 	historyListText := fmt.Sprintf("\nHere are the previous sessions:\n%s", strings.Join(historyList, ""))
 
-	systemPromptText := fmt.Sprintf("%s %s %s %s", os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText, historyListText)
+	// Build the system prompt text
+	systemPromptText := fmt.Sprintf("%s %s %s %s\nCurrent Time: %s", os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText, historyListText, time.Now().Format("2006-01-02 15:04:05"))
 
 	return systemPromptText
 }
