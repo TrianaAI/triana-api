@@ -7,6 +7,7 @@ import (
 	"github.com/BeeCodingAI/triana-api/services"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func GenerateSessionResponse(c *gin.Context) {
@@ -15,7 +16,11 @@ func GenerateSessionResponse(c *gin.Context) {
 	// check if session_id exists in the database
 	var existingSesssion models.Session
 
-	err := config.DB.Preload("User").Where("id = ?", session_id).First(&existingSesssion).Error
+	err := config.DB.Preload("User").
+		Preload("Messages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC") // Order messages by created_at in ascending order (for earlier messages first)
+		}).
+		Where("id = ?", session_id).First(&existingSesssion).Error
 
 	if err != nil {
 		c.JSON(404, gin.H{"message": "Session not found"})

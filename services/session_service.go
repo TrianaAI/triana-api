@@ -2,18 +2,18 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
-	"github.com/BeeCodingAI/triana-api/schemas"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"google.golang.org/genai"
+	"gorm.io/gorm"
 )
 
-func convertMessageToGenaiContent(message schemas.Message) *genai.Content {
+func convertMessageToGenaiContent(message models.Message) *genai.Content {
 	// Determine the role of the message
 	var role genai.Role
 	if message.Role == "user" {
@@ -37,12 +37,8 @@ func GetLLMResponse(newMessage string, session models.Session) (string, error) {
 		Backend: genai.BackendGeminiAPI,
 	})
 
-	// from the chat history, unmarshal the JSON to a slice of Message structs
-	var storedHistory []schemas.Message
-	err := json.Unmarshal(session.ChatHistory, &storedHistory)
-	if err != nil {
-		return "", fmt.Errorf("error unmarshalling chat history: %w", err)
-	}
+	// the chat history is stored as a one-to-many relationship in the database
+	var storedHistory []models.Message = session.Messages
 
 	// build the genai history
 	var genaiHistory []*genai.Content
@@ -83,29 +79,18 @@ func UpdateChatHistory(sessionId string, newMessage string, LLMResponse string) 
 		return fmt.Errorf("error fetching session: %v", err)
 	}
 
-	// unmarshal the chat history to a slice of Message structs
-	var chatHistory []schemas.Message
-	err = json.Unmarshal(session.ChatHistory, &chatHistory)
-	if err != nil {
-		return fmt.Errorf("error unmarshalling chat history: %v", err)
-	}
-
 	// append the new message and LLM response to the chat history
-	newUserMessage := schemas.Message{Role: "user", Content: newMessage}
-	newLLMResponse := schemas.Message{Role: "triana", Content: LLMResponse}
-	chatHistory = append(chatHistory, newUserMessage, newLLMResponse)
+	now := time.Now()
+	newUserMessage := models.Message{Role: "user", Content: newMessage, SessionID: session.ID, CreatedAt: now, UpdatedAt: now}
+	newLLMResponse := models.Message{Role: "triana", Content: LLMResponse, SessionID: session.ID, CreatedAt: now.Add(time.Millisecond), UpdatedAt: now.Add(time.Millisecond)}
 
-	// marshal the updated chat history back to JSON
-	updatedChatHistory, err := json.Marshal(chatHistory)
-	if err != nil {
-		return fmt.Errorf("error marshalling updated chat history: %v", err)
+	// save the new messages to the database
+	if err := config.DB.Create(&newUserMessage).Error; err != nil {
+		return fmt.Errorf("error saving user message: %v", err)
 	}
 
-	// update the session's chat history in the database
-	session.ChatHistory = updatedChatHistory
-	err = config.DB.Save(&session).Error
-	if err != nil {
-		return fmt.Errorf("error updating session: %v", err)
+	if err := config.DB.Create(&newLLMResponse).Error; err != nil {
+		return fmt.Errorf("error saving LLM response: %v", err)
 	}
 
 	return nil
@@ -140,7 +125,12 @@ func GetSessionData(sessionId string) (models.Session, error) {
 	// check if session_id exists in the database
 	var session models.Session
 
-	err := config.DB.Preload("User").Where("id = ?", sessionId).First(&session).Error
+	err := config.DB.
+		Preload("User").
+		Preload("Messages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC") // Order messages by created_at in descending order (for latest messages first)
+		}).
+		Where("id = ?", sessionId).First(&session).Error
 
 	if err != nil {
 		return models.Session{}, fmt.Errorf("session not found: %w", err)

@@ -8,7 +8,6 @@ import (
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
 	"github.com/BeeCodingAI/triana-api/schemas"
-	"gorm.io/datatypes"
 )
 
 func generateOTP() string {
@@ -32,14 +31,13 @@ func ValidateOTP(input schemas.OTPInput) (*models.Session, error) {
 
 	// create a new session for the user with the data from the input
 	newSession := models.Session{
-		UserID:      user.ID,
-		Weight:      input.Weight,
-		Height:      input.Height,
-		Heartrate:   input.Heartrate,
-		Bodytemp:    input.Bodytemp,
-		ChatHistory: datatypes.JSON([]byte("[]")),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		UserID:    user.ID,
+		Weight:    input.Weight,
+		Height:    input.Height,
+		Heartrate: input.Heartrate,
+		Bodytemp:  input.Bodytemp,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	// save the session to the database
