@@ -36,7 +36,7 @@ func GenerateSessionResponse(c *gin.Context) {
 	}
 
 	// get the message reply from LLM
-	reply, err := services.GetLLMResponse(input.NewMessage, existingSesssion)
+	reply, err := services.GetLLMResponse(input.NewMessage, &existingSesssion)
 	if err != nil {
 		c.JSON(500, gin.H{"message": err.Error()})
 		return

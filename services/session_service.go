@@ -31,7 +31,7 @@ func convertMessageToGenaiContent(message models.Message) *genai.Content {
 	return content
 }
 
-func GetLLMResponse(newMessage string, session models.Session) (string, error) {
+func GetLLMResponse(newMessage string, session *models.Session) (string, error) {
 	// initialize the Gemini client with your API key and backend
 	ctx := context.Background()
 	client, _ := genai.NewClient(ctx, &genai.ClientConfig{
@@ -98,7 +98,7 @@ func UpdateChatHistory(sessionId string, newMessage string, LLMResponse string) 
 	return nil
 }
 
-func buildSystemPrompt(session models.Session) string {
+func buildSystemPrompt(session *models.Session) string {
 	// Build the system prompt using the user's data
 	userDataText := fmt.Sprintf(
 		"\nHere's the user's data: \n\nName:%s\nAge:%s\nNationality:%s\nWeight: %d\nHeight: %d\nHeartrate: %d\nBodytemp: %f\n",
@@ -165,7 +165,7 @@ func GetSessionData(sessionId string) (models.Session, error) {
 	return session, nil
 }
 
-func GetHistory(session models.Session) []models.Session {
+func GetHistory(session *models.Session) []models.Session {
 	var history []models.Session
 	err := config.DB.Where("user_id = ?", session.User.ID).Where("id != ?", session.ID).Order("created_at DESC").Find(&history).Error
 	if err != nil {
