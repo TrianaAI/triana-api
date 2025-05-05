@@ -16,6 +16,7 @@ type Session struct {
 	Bodytemp     float32   `json:"bodytemp" gorm:"type:float;not null"`
 	Messages     []Message `json:"messages" gorm:"foreignKey:SessionID"`
 	Prediagnosis string    `json:"prediagnosis" gorm:"type:varchar(100);"`
+	DoctorDiagnosis string    `json:"doctor_diagnosis" gorm:"type:varchar(100);"` 
 	CreatedAt    time.Time `json:"created_at" gorm:"type:timestamp;not null"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"type:timestamp;not null"`
 }
