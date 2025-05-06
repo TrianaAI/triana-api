@@ -38,7 +38,7 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		APIKey:  os.Getenv("GEMINI_API_KEY"),
 		Backend: genai.BackendGeminiAPI,
 	})
-	
+
 	if err != nil {
 		log.Printf("Error creating Gemini client: %v\n", err)
 		return "", fmt.Errorf("error creating LLM client: %w", err)
@@ -71,7 +71,7 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		log.Printf("Error creating chat: %v\n", err)
 		return "", fmt.Errorf("error creating chat: %w", err)
 	}
-	
+
 	res, err := chat.SendMessage(ctx, genai.Part{Text: newMessage})
 	if err != nil {
 		log.Printf("Error sending message: %v\n", err)
@@ -79,8 +79,8 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 	}
 
 	// get the response from the LLM
-	if res != nil && len(res.Candidates) > 0 && res.Candidates[0].Content != nil && 
-	   len(res.Candidates[0].Content.Parts) > 0 {
+	if res != nil && len(res.Candidates) > 0 && res.Candidates[0].Content != nil &&
+		len(res.Candidates[0].Content.Parts) > 0 {
 		text := res.Candidates[0].Content.Parts[0].Text
 		return text, nil
 	}
@@ -117,9 +117,10 @@ func UpdateChatHistory(sessionId string, newMessage string, LLMResponse string) 
 func buildSystemPrompt(session *models.Session) string {
 	// Build the system prompt using the user's data
 	userDataText := fmt.Sprintf(
-		"\nHere's the user's data: \n\nName:%s\nAge:%s\nNationality:%s\nWeight: %d\nHeight: %d\nHeartrate: %d\nBodytemp: %f\n",
+		"\nHere's the user's data: \n\nName:%s\nAge:%s\nGender:%s\nNationality:%s\nWeight: %d\nHeight: %d\nHeartrate: %d\nBodytemp: %f\n",
 		session.User.Name,
 		utils.DateToAgeString(session.User.DOB),
+		session.User.Gender,
 		session.User.Nationality,
 		session.Weight,
 		session.Height,

@@ -26,6 +26,7 @@ func RegisterUser(input schemas.RegisterUserInput) (*models.User, error) {
 			Email:       input.Email,
 			Nationality: input.Nationality,
 			DOB:         input.DOB,
+			Gender:      input.Gender,
 			OTP:         otp,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -42,6 +43,7 @@ func RegisterUser(input schemas.RegisterUserInput) (*models.User, error) {
 		existingUser.Name = input.Name
 		existingUser.Nationality = input.Nationality
 		existingUser.DOB = input.DOB
+		existingUser.Gender = input.Gender
 
 		existingUser.UpdatedAt = time.Now()
 

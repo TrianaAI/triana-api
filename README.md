@@ -54,7 +54,7 @@ Register a new user. The request body should contain the user's email and passwo
     "email" : "new@gmail.com",
     "nationality": "Indonesian",
     "dob": "2004-04-01", // use YYYY-MM-DD format
-    "weight": 2,
+    "weight": 40.2,
     "height": 165.6,
     "heartrate": 98.6,
     "bodytemp": 35.5
@@ -82,7 +82,7 @@ Verify the OTP sent to the user's email. To avoid complexity, send the same data
     "email" : "new@gmail.com",
     "nationality": "Indonesian",
     "dob": "2004-04-01", // use YYYY-MM-DD format
-    "weight": 2,
+    "weight": 40.2,
     "height": 165.6,
     "heartrate": 98.6,
     "bodytemp": 35.5,
