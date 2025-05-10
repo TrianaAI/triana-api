@@ -109,7 +109,7 @@ func sendOTPEmail(to string, otp string, token string) (map[string]interface{}, 
 
 func injectOtpIntoHtml(otpCode string) string {
     // Path to the HTML file
-    htmlFilePath := "../emails/otp_mail.html"
+    htmlFilePath := "emails/otp_mail.html"
 
     // Read the HTML file
     htmlBytes, err := os.ReadFile(htmlFilePath)
