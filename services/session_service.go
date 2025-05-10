@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
+	"github.com/BeeCodingAI/triana-api/schemas"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"google.golang.org/genai"
 	"gorm.io/gorm"
@@ -44,6 +46,19 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		return "", fmt.Errorf("error creating LLM client: %w", err)
 	}
 
+	config := &genai.GenerateContentConfig{
+		ResponseMIMEType: "application/json",
+		ResponseSchema: &genai.Schema{
+			Type: genai.TypeObject,
+			Properties: map[string]*genai.Schema{
+				"next_action":  {Type: genai.TypeString},
+				"reply":        {Type: genai.TypeString},
+				"doctor_id":    {Type: genai.TypeString},
+				"prediagnosis": {Type: genai.TypeString},
+			},
+		},
+	}
+
 	// the chat history is stored as a one-to-many relationship in the database
 	var storedHistory []models.Message = session.Messages
 
@@ -66,7 +81,7 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		}
 	}
 
-	chat, err := client.Chats.Create(ctx, os.Getenv("GEMINI_MODEL"), nil, genaiHistory)
+	chat, err := client.Chats.Create(ctx, os.Getenv("GEMINI_MODEL"), config, genaiHistory)
 	if err != nil {
 		log.Printf("Error creating chat: %v\n", err)
 		return "", fmt.Errorf("error creating chat: %w", err)
@@ -211,4 +226,17 @@ func DoctorDiagnose(sessionId string, diagnosis string) error {
 	}
 
 	return nil
+}
+
+// RemoveMarkdownAndExtractJSON removes Markdown syntax and extracts the JSON content
+func ParseJSON(input string) (schemas.LLMResponse, error) {
+
+	// Extract JSON content
+	var responseJSON schemas.LLMResponse
+	err := json.Unmarshal([]byte(input), &responseJSON)
+	if err != nil {
+		return schemas.LLMResponse{}, fmt.Errorf("failed to extract JSON: %w", err)
+	}
+
+	return responseJSON, nil
 }

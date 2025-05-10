@@ -14,4 +14,5 @@ type Queue struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamp;not null"`
 	Doctor    Doctor    `json:"doctor" gorm:"foreignKey:DoctorID"`
 	Session   Session   `json:"session" gorm:"foreignKey:SessionID"`
+	Number    int       `json:"number" gorm:"type:int;autoIncrement;not null"`
 }
