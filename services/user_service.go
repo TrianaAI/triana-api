@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -55,7 +56,11 @@ func RegisterUser(input schemas.RegisterUserInput) (*models.User, error) {
 		return nil, fmt.Errorf("failed to check for existing user: %w", err)
 	}
 
-	// TODO: Send OTP to user's email
+	// Send OTP email to the user
+	_, err = sendOTPEmail(existingUser.Email, otp, os.Getenv("EMAIL_OTP_TOKEN"))
+	if err != nil {
+		fmt.Printf("Error sending OTP email: %v\n", err)
+	}
 
 	// registration success, return the user object
 	return &existingUser, nil
