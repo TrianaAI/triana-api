@@ -193,3 +193,22 @@ func GetHistory(session *models.Session) []models.Session {
 
 	return history
 }
+
+func DoctorDiagnose(sessionId string, diagnosis string) error {
+	// Fetch the session from the database
+	var session models.Session
+	err := config.DB.Where("id = ?", sessionId).First(&session).Error
+	if err != nil {
+		return fmt.Errorf("session not found: %w", err)
+	}
+
+	// Update the session with the doctor's diagnosis
+	session.DoctorDiagnosis = diagnosis
+	session.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&session).Error; err != nil {
+		return fmt.Errorf("failed to save diagnosis: %w", err)
+	}
+
+	return nil
+}
