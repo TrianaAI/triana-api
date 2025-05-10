@@ -34,10 +34,15 @@ func convertMessageToGenaiContent(message models.Message) *genai.Content {
 func GetLLMResponse(newMessage string, session *models.Session) (string, error) {
 	// initialize the Gemini client with your API key and backend
 	ctx := context.Background()
-	client, _ := genai.NewClient(ctx, &genai.ClientConfig{
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  os.Getenv("GEMINI_API_KEY"),
 		Backend: genai.BackendGeminiAPI,
 	})
+
+	if err != nil {
+		log.Printf("Error creating Gemini client: %v\n", err)
+		return "", fmt.Errorf("error creating LLM client: %w", err)
+	}
 
 	// the chat history is stored as a one-to-many relationship in the database
 	var storedHistory []models.Message = session.Messages
@@ -61,12 +66,23 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		}
 	}
 
-	chat, _ := client.Chats.Create(ctx, os.Getenv("GEMINI_MODEL"), nil, genaiHistory)
-	res, _ := chat.SendMessage(ctx, genai.Part{Text: newMessage})
+	chat, err := client.Chats.Create(ctx, os.Getenv("GEMINI_MODEL"), nil, genaiHistory)
+	if err != nil {
+		log.Printf("Error creating chat: %v\n", err)
+		return "", fmt.Errorf("error creating chat: %w", err)
+	}
+
+	res, err := chat.SendMessage(ctx, genai.Part{Text: newMessage})
+	if err != nil {
+		log.Printf("Error sending message: %v\n", err)
+		return "", fmt.Errorf("error sending message: %w", err)
+	}
 
 	// get the response from the LLM
-	if len(res.Candidates) > 0 {
-		return res.Candidates[0].Content.Parts[0].Text, nil
+	if res != nil && len(res.Candidates) > 0 && res.Candidates[0].Content != nil &&
+		len(res.Candidates[0].Content.Parts) > 0 {
+		text := res.Candidates[0].Content.Parts[0].Text
+		return text, nil
 	}
 
 	return "", fmt.Errorf("no response from LLM")
@@ -101,9 +117,10 @@ func UpdateChatHistory(sessionId string, newMessage string, LLMResponse string) 
 func buildSystemPrompt(session *models.Session) string {
 	// Build the system prompt using the user's data
 	userDataText := fmt.Sprintf(
-		"\nHere's the user's data: \n\nName:%s\nAge:%s\nNationality:%s\nWeight: %d\nHeight: %d\nHeartrate: %d\nBodytemp: %f\n",
+		"\nHere's the user's data: \n\nName:%s\nAge:%s\nGender:%s\nNationality:%s\nWeight: %d\nHeight: %d\nHeartrate: %d\nBodytemp: %f\n",
 		session.User.Name,
 		utils.DateToAgeString(session.User.DOB),
+		session.User.Gender,
 		session.User.Nationality,
 		session.Weight,
 		session.Height,

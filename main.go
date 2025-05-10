@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -12,9 +14,15 @@ import (
 
 func main() {
 	// load .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if _, err := os.Stat(".env"); err == nil {
+		err = godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	} else if os.IsNotExist(err) {
+		log.Println(".env file not found, using environment variables from Docker")
+	} else {
+		log.Fatal("Error checking .env file:", err)
 	}
 
 	// Connect to the database

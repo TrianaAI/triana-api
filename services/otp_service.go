@@ -1,8 +1,14 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
+	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -54,4 +60,66 @@ func ValidateOTP(input schemas.OTPInput) (*models.Session, error) {
 	}
 
 	return &newSession, nil
+}
+
+func sendOTPEmail(to string, otp string, token string) (map[string]interface{}, error) {
+
+	email := schemas.EmailRequestOTP{
+		To:      to,
+		Subject: "Your OTP Code",
+		Body:    "",
+		From: "test@example.com",
+		HTML: injectOtpIntoHtml(otp),
+}
+
+	// URL of the email service
+	url := "http://52.230.88.220:16250/send-email"
+
+	jsonData, err := json.Marshal(email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal email request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("error from email service: %s", resp.Status)
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result, nil
+}
+
+func injectOtpIntoHtml(otpCode string) string {
+    // Path to the HTML file
+    htmlFilePath := "emails/otp_mail.html"
+
+    // Read the HTML file
+    htmlBytes, err := os.ReadFile(htmlFilePath)
+    if err != nil {
+        log.Fatalf("Failed to read HTML file: %v", err)
+    }
+
+    // Convert the file content to a string
+    htmlString := string(htmlBytes)
+
+    // Replace the placeholder with the OTP code
+    return strings.ReplaceAll(htmlString, "{{otp_code}}", otpCode)
 }

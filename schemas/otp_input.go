@@ -9,5 +9,6 @@ type OTPInput struct {
 	Height      float32 `json:"height" validate:"required"`
 	Heartrate   float32 `json:"heartrate" validate:"required"`
 	Bodytemp    float32 `json:"bodytemp" validate:"required"`
+	Gender      string  `json:"gender" validate:"required"`
 	OTP         string  `json:"otp" validate:"required"`
 }

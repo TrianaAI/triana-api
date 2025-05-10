@@ -71,14 +71,15 @@ Register a new user. The request body should contain the user's email and passwo
 
 ```json
 {
-  "name": "Mario",
-  "email": "new@gmail.com",
-  "nationality": "Indonesian",
-  "dob": "2004-04-01", // use YYYY-MM-DD format
-  "weight": 2,
-  "height": 165.6,
-  "heartrate": 98.6,
-  "bodytemp": 35.5
+    "name": "Mario",
+    "email" : "new@gmail.com",
+    "nationality": "Indonesian",
+    "dob": "2004-04-01", // use YYYY-MM-DD format
+    "weight": 40.2,
+    "gender": "male",
+    "height": 165.6,
+    "heartrate": 98.6,
+    "bodytemp": 35.5
 }
 ```
 
@@ -108,6 +109,7 @@ Verify the OTP sent to the user's email. To avoid complexity, send the same data
   "nationality": "Indonesian",
   "dob": "2004-04-01", // use YYYY-MM-DD format
   "weight": 2,
+  "gender": "male",
   "height": 165.6,
   "heartrate": 98.6,
   "bodytemp": 35.5,
