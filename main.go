@@ -29,7 +29,7 @@ func main() {
 	// session routes
 	r.GET("/session/:id", controllers.GetActiveSession)
 	r.POST("/session/:id", controllers.GenerateSessionResponse)
-	r.POST("/session/:id/diagnose", controllers.DoctorDiagnose) // New route for doctor diagnosis
+	r.POST("/session/:id/diagnose", controllers.DoctorDiagnose)
 
 	// test routes
 	r.GET("/ping", func(c *gin.Context) {
