@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -105,7 +107,19 @@ func sendOTPEmail(to string, otp string, token string) (map[string]interface{}, 
 	return result, nil
 }
 
+func injectOtpIntoHtml(otpCode string) string {
+    // Path to the HTML file
+    htmlFilePath := "../emails/otp_mail.html"
 
-func injectOtpIntoHtml( otpCode string) string {
-	return strings.ReplaceAll( "../emails/otp-mail.html", "{{otp_code}}", otpCode)
+    // Read the HTML file
+    htmlBytes, err := os.ReadFile(htmlFilePath)
+    if err != nil {
+        log.Fatalf("Failed to read HTML file: %v", err)
+    }
+
+    // Convert the file content to a string
+    htmlString := string(htmlBytes)
+
+    // Replace the placeholder with the OTP code
+    return strings.ReplaceAll(htmlString, "{{otp_code}}", otpCode)
 }
