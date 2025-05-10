@@ -6,6 +6,7 @@ import (
 
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors"
 	"github.com/joho/godotenv"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -28,7 +29,11 @@ func main() {
 	// Connect to the database
 	config.ConnectDatabase()
 
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+
 	r := gin.Default()
+	r.Use(cors.New(corsConfig))
 
 	// register routes
 	r.POST("/register", controllers.RegisterUser)
