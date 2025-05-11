@@ -31,6 +31,7 @@ func GenerateQueue(sessionID string, doctorID string) (*models.Queue, error) {
 	// find the latest queue entry today universally
 	var latestQueue models.Queue
 	err = config.DB.
+		Where("doctor_id = ?", doctorID).
 		Where("created_at >= ?", todayStart).
 		Order("number DESC").
 		First(&latestQueue).Error
@@ -52,6 +53,23 @@ func GenerateQueue(sessionID string, doctorID string) (*models.Queue, error) {
 	err = config.DB.Create(&queue).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to create queue entry: %w", err)
+	}
+
+	return &queue, nil
+}
+
+func GetCurrentQueue(doctorID string) (*models.Queue, error) {
+	todayStart := time.Now().Truncate(24 * time.Hour)
+
+	var queue models.Queue
+	err := config.DB.
+		Where("doctor_id = ?", doctorID).
+		Where("created_at >= ?", todayStart).
+		Order("number ASC").
+		First(&queue).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("no queue found for today: %w", err)
 	}
 
 	return &queue, nil
