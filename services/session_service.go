@@ -51,7 +51,7 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		ResponseSchema: &genai.Schema{
 			Type: genai.TypeObject,
 			Properties: map[string]*genai.Schema{
-				"next_action":  {Type: genai.TypeString},
+				"next_action":  {Type: genai.TypeString, Enum: []string{"CONTINUE_CHAT", "APPOINTMENT"}},
 				"reply":        {Type: genai.TypeString},
 				"doctor_id":    {Type: genai.TypeString},
 				"prediagnosis": {Type: genai.TypeString},
@@ -202,7 +202,7 @@ func GetHistory(session *models.Session) []models.Session {
 	var history []models.Session
 	err := config.DB.Where("user_id = ?", session.User.ID).Where("id != ?", session.ID).Order("created_at DESC").Find(&history).Error
 	if err != nil {
-		fmt.Printf("Error fetching session history: %v\n", err)
+		log.Printf("Error fetching session history: %v\n", err)
 		return []models.Session{} // Return an empty slice if there's an error
 	}
 

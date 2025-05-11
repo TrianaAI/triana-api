@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -53,7 +53,12 @@ func GenerateSessionResponse(c *gin.Context) {
 	var queue *models.Queue = nil
 
 	// from the LLM response determine the next action
-	if next_action := LLMResponse.NextAction; next_action == "CONITNUE_CHAT" {
+	log.Println("LLM Response Next Action:", LLMResponse.NextAction)
+	log.Println("-----------------------------------")
+	log.Println("LLM Response Doctor ID:", LLMResponse.DoctorID)
+	log.Println("-----------------------------------")
+	log.Println("LLM Response:", LLMResponse.Reply)
+	if next_action := LLMResponse.NextAction; next_action == "CONTINUE_CHAT" {
 		// update the session with the new message and LLM response
 		err = services.UpdateChatHistory(session_id, input.NewMessage, LLMResponse.Reply)
 		if err != nil {
@@ -77,7 +82,7 @@ func GenerateSessionResponse(c *gin.Context) {
 
 		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"))
 		if err != nil {
-			fmt.Println("Error sending email:", err)
+			log.Println("Error sending email:", err)
 		}
 
 	} else {
