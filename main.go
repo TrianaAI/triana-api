@@ -4,9 +4,8 @@ import (
 	"log"
 	"os"
 
-
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -43,6 +42,9 @@ func main() {
 	r.GET("/session/:id", controllers.GetActiveSession)
 	r.POST("/session/:id", controllers.GenerateSessionResponse)
 	r.POST("/session/:id/diagnose", controllers.DoctorDiagnose)
+
+	// queue routes
+	r.GET("/queue/:doctor_id", controllers.GetCurrentQueue)
 
 	// test routes
 	r.GET("/ping", func(c *gin.Context) {
