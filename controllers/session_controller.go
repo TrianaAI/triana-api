@@ -9,7 +9,6 @@ import (
 	"github.com/BeeCodingAI/triana-api/services"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -45,9 +44,14 @@ func GenerateSessionResponse(c *gin.Context) {
 		return
 	}
 
+	// parse the LLM response
 	var LLMResponse schemas.LLMResponse
 	LLMResponse, err = services.ParseJSON(reply)
 
+	// queue var
+	var queue *models.Queue = nil
+
+	// from the LLM response determine the next action
 	if next_action := LLMResponse.NextAction; next_action == "CONITNUE_CHAT" {
 		// update the session with the new message and LLM response
 		err = services.UpdateChatHistory(session_id, input.NewMessage, LLMResponse.Reply)
@@ -56,32 +60,15 @@ func GenerateSessionResponse(c *gin.Context) {
 			return
 		}
 	} else if next_action == "APPOINTMENT" {
-		// create queue numbe
-		var queue models.Queue
-		
-		// parse string to uuid
-		parsedUUID, err := uuid.Parse(session_id)
+		// create queue
+		queue, err = services.GenerateQueue(session_id, LLMResponse.DoctorID)
 		if err != nil {
-			c.JSON(500, gin.H{"message": "Invalid session ID"})
+			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
-		queue.SessionID = parsedUUID
-
-		// parse string to doctor id
-		parsedUUID, err = uuid.Parse(LLMResponse.DoctorID)
-		if err != nil {
-			c.JSON(500, gin.H{"message": "Invalid doctor ID"})
-			return
-		}
-
-		queue.DoctorID = parsedUUID
-
-		// create queue (number is auto incremented)
-		err = config.DB.Create(&queue).Error
-		if err != nil {
-			c.JSON(500, gin.H{"message": "Failed to create queue"})
-			return
-		}
+	} else {
+		c.JSON(500, gin.H{"message": "Invalid next action"})
+		return
 	}
 
 	// update the chat history with the new message and LLM response
@@ -94,9 +81,10 @@ func GenerateSessionResponse(c *gin.Context) {
 	// send the response back to the client
 	c.JSON(200, gin.H{
 		"message":     "Chat history updated successfully",
+		"next_action": LLMResponse.NextAction,
 		"reply":       LLMResponse.Reply,
 		"session_id":  session_id,
-		"next_action": LLMResponse.NextAction,
+		"queue":       queue, // queue is nil if next_action is not APPOINTMENT
 	})
 }
 
