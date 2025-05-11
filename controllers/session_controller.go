@@ -1,8 +1,7 @@
 package controllers
 
 import (
-	// "fmt"
-
+	"fmt"
 	"os"
 
 	"github.com/BeeCodingAI/triana-api/config"
@@ -78,8 +77,7 @@ func GenerateSessionResponse(c *gin.Context) {
 
 		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"))
 		if err != nil {
-			c.JSON(500, gin.H{"message": err.Error()})
-			return
+			fmt.Println("Error sending email:", err)
 		}
 
 	} else {
