@@ -64,13 +64,13 @@ func ValidateOTP(input schemas.OTPInput) (*models.Session, error) {
 
 func sendOTPEmail(to string, otp string, token string) (map[string]interface{}, error) {
 
-	email := schemas.EmailRequestOTP{
+	email := schemas.Email{
 		To:      to,
 		Subject: "Your OTP Code",
 		Body:    "",
-		From: "test@example.com",
-		HTML: injectOtpIntoHtml(otp),
-}
+		From:    "test@example.com",
+		HTML:    injectOtpIntoHtml(otp),
+	}
 
 	// URL of the email service
 	url := "http://52.230.88.220:16250/send-email"
@@ -108,18 +108,18 @@ func sendOTPEmail(to string, otp string, token string) (map[string]interface{}, 
 }
 
 func injectOtpIntoHtml(otpCode string) string {
-    // Path to the HTML file
-    htmlFilePath := "emails/otp_mail.html"
+	// Path to the HTML file
+	htmlFilePath := "emails/otp_mail.html"
 
-    // Read the HTML file
-    htmlBytes, err := os.ReadFile(htmlFilePath)
-    if err != nil {
-        log.Fatalf("Failed to read HTML file: %v", err)
-    }
+	// Read the HTML file
+	htmlBytes, err := os.ReadFile(htmlFilePath)
+	if err != nil {
+		log.Fatalf("Failed to read HTML file: %v", err)
+	}
 
-    // Convert the file content to a string
-    htmlString := string(htmlBytes)
+	// Convert the file content to a string
+	htmlString := string(htmlBytes)
 
-    // Replace the placeholder with the OTP code
-    return strings.ReplaceAll(htmlString, "{{otp_code}}", otpCode)
+	// Replace the placeholder with the OTP code
+	return strings.ReplaceAll(htmlString, "{{otp_code}}", otpCode)
 }

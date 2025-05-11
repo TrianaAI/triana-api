@@ -3,6 +3,8 @@ package controllers
 import (
 	// "fmt"
 
+	"os"
+
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
 	"github.com/BeeCodingAI/triana-api/schemas"
@@ -16,13 +18,13 @@ func GenerateSessionResponse(c *gin.Context) {
 	session_id := c.Param("id")
 
 	// check if session_id exists in the database
-	var existingSesssion models.Session
+	var existingSession models.Session
 
 	err := config.DB.Preload("User").
 		Preload("Messages", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at ASC") // Order messages by created_at in ascending order (for earlier messages first)
 		}).
-		Where("id = ?", session_id).First(&existingSesssion).Error
+		Where("id = ?", session_id).First(&existingSession).Error
 
 	if err != nil {
 		c.JSON(404, gin.H{"message": "Session not found"})
@@ -38,7 +40,7 @@ func GenerateSessionResponse(c *gin.Context) {
 	}
 
 	// get the message reply from LLM
-	reply, err := services.GetLLMResponse(input.NewMessage, &existingSesssion)
+	reply, err := services.GetLLMResponse(input.NewMessage, &existingSession)
 	if err != nil {
 		c.JSON(500, gin.H{"message": err.Error()})
 		return
@@ -66,6 +68,20 @@ func GenerateSessionResponse(c *gin.Context) {
 			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
+
+		// send email to the user
+		currentQueue, err := services.GetCurrentQueue(queue.DoctorID)
+		if err != nil {
+			c.JSON(500, gin.H{"message": err.Error()})
+			return
+		}
+
+		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"))
+		if err != nil {
+			c.JSON(500, gin.H{"message": err.Error()})
+			return
+		}
+
 	} else {
 		c.JSON(500, gin.H{"message": "Invalid next action"})
 		return
