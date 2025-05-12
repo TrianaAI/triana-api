@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	// "fmt"
+	"log"
+	"os"
 
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
@@ -9,7 +10,6 @@ import (
 	"github.com/BeeCodingAI/triana-api/services"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -17,13 +17,13 @@ func GenerateSessionResponse(c *gin.Context) {
 	session_id := c.Param("id")
 
 	// check if session_id exists in the database
-	var existingSesssion models.Session
+	var existingSession models.Session
 
 	err := config.DB.Preload("User").
 		Preload("Messages", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at ASC") // Order messages by created_at in ascending order (for earlier messages first)
 		}).
-		Where("id = ?", session_id).First(&existingSesssion).Error
+		Where("id = ?", session_id).First(&existingSession).Error
 
 	if err != nil {
 		c.JSON(404, gin.H{"message": "Session not found"})
@@ -39,49 +39,51 @@ func GenerateSessionResponse(c *gin.Context) {
 	}
 
 	// get the message reply from LLM
-	reply, err := services.GetLLMResponse(input.NewMessage, &existingSesssion)
+	reply, err := services.GetLLMResponse(input.NewMessage, &existingSession)
 	if err != nil {
 		c.JSON(500, gin.H{"message": err.Error()})
 		return
 	}
 
+	// parse the LLM response
 	var LLMResponse schemas.LLMResponse
 	LLMResponse, err = services.ParseJSON(reply)
 
-	if next_action := LLMResponse.NextAction; next_action == "CONITNUE_CHAT" {
-		// update the session with the new message and LLM response
-		err = services.UpdateChatHistory(session_id, input.NewMessage, LLMResponse.Reply)
+	// queue var
+	var queue *models.Queue = nil
+
+	// from the LLM response determine the next action
+	log.Println("LLM Response Next Action:", LLMResponse.NextAction)
+	log.Println("-----------------------------------")
+	log.Println("LLM Response Doctor ID:", LLMResponse.DoctorID)
+	log.Println("-----------------------------------")
+	log.Println("LLM Response:", LLMResponse.Reply)
+	if next_action := LLMResponse.NextAction; next_action == "CONTINUE_CHAT" {
+		// just continue
+
+	} else if next_action == "APPOINTMENT" {
+		// create queue
+		queue, err = services.GenerateQueue(session_id, LLMResponse.DoctorID)
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
-	} else if next_action == "APPOINTMENT" {
-		// create queue numbe
-		var queue models.Queue
-		
-		// parse string to uuid
-		parsedUUID, err := uuid.Parse(session_id)
-		if err != nil {
-			c.JSON(500, gin.H{"message": "Invalid session ID"})
-			return
-		}
-		queue.SessionID = parsedUUID
 
-		// parse string to doctor id
-		parsedUUID, err = uuid.Parse(LLMResponse.DoctorID)
+		// send email to the user
+		currentQueue, err := services.GetCurrentQueue(queue.DoctorID)
 		if err != nil {
-			c.JSON(500, gin.H{"message": "Invalid doctor ID"})
+			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
 
-		queue.DoctorID = parsedUUID
-
-		// create queue (number is auto incremented)
-		err = config.DB.Create(&queue).Error
+		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"))
 		if err != nil {
-			c.JSON(500, gin.H{"message": "Failed to create queue"})
-			return
+			log.Println("Error sending email:", err)
 		}
+
+	} else {
+		c.JSON(500, gin.H{"message": "Invalid next action"})
+		return
 	}
 
 	// update the chat history with the new message and LLM response
@@ -94,9 +96,10 @@ func GenerateSessionResponse(c *gin.Context) {
 	// send the response back to the client
 	c.JSON(200, gin.H{
 		"message":     "Chat history updated successfully",
+		"next_action": LLMResponse.NextAction,
 		"reply":       LLMResponse.Reply,
 		"session_id":  session_id,
-		"next_action": LLMResponse.NextAction,
+		"queue":       queue, // queue is nil if next_action is not APPOINTMENT
 	})
 }
 

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -59,7 +60,7 @@ func RegisterUser(input schemas.RegisterUserInput) (*models.User, error) {
 	// Send OTP email to the user
 	_, err = sendOTPEmail(existingUser.Email, otp, os.Getenv("EMAIL_OTP_TOKEN"))
 	if err != nil {
-		fmt.Printf("Error sending OTP email: %v\n", err)
+		log.Printf("Error sending OTP email: %v\n", err)
 	}
 
 	// registration success, return the user object

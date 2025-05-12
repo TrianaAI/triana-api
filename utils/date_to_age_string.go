@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -14,7 +15,7 @@ func DateToAgeString(dateOfBirth string) string {
 	dob, err := time.Parse("2006-01-02", dateOfBirth)
 	if err != nil {
 		// log error
-		fmt.Printf("Error parsing date of birth: %v\n", err)
+		log.Printf("Error parsing date of birth: %v\n", err)
 		return ""
 	}
 
