@@ -52,7 +52,7 @@ func GetDoctorDetails(c *gin.Context) {
 
 	// Respond with aggregated data
 	c.JSON(200, gin.H{
-		"name": doctor,
+		"doctor": doctor,
 		"appointment_count_all_time": totalAppointments,
 		"appointment_count_daily": dailyAppointments,
 		"current_queue": currentQueue, // Current queue ID
