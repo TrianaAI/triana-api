@@ -65,10 +65,9 @@ func GenerateQueue(sessionID string, doctorID string) (*models.Queue, error) {
 	return &queue, nil
 }
 
-func GetCurrentQueue(doctorID uuid.UUID) *models.Queue {
+func GetCurrentQueue(doctorID uuid.UUID) (*models.Queue, error) {
 	todayStart := time.Now().Truncate(24 * time.Hour)
 
-	
 	var queue models.Queue
 	err := config.DB.
 		Joins("JOIN sessions ON sessions.id = queues.session_id").
@@ -80,9 +79,10 @@ func GetCurrentQueue(doctorID uuid.UUID) *models.Queue {
 		First(&queue).Error
 
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("no queue found for today: %w", err)
 	}
-	return &queue
+
+	return &queue, nil
 }
 
 func GetTotalAppointments(doctorID uuid.UUID) int {

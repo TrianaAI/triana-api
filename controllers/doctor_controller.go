@@ -48,13 +48,15 @@ func GetDoctorDetails(c *gin.Context) {
 	// Fetch appointment counts and current queue
 	totalAppointments := services.GetTotalAppointments(id)
 	dailyAppointments := services.GetDailyAppointments(id)
-	currentQueue := services.GetCurrentQueue(id)
+
+	// If empty queue, just let currentQueue be nil
+	currentQueue, err := services.GetCurrentQueue(id)
 
 	// Respond with aggregated data
 	c.JSON(200, gin.H{
-		"doctor": doctor,
+		"doctor":                     doctor,
 		"appointment_count_all_time": totalAppointments,
-		"appointment_count_daily": dailyAppointments,
-		"current_queue": currentQueue, // Current queue ID
+		"appointment_count_daily":    dailyAppointments,
+		"current_queue":              currentQueue, // Current queue ID
 	})
 }

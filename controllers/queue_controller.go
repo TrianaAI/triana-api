@@ -12,13 +12,20 @@ func GetCurrentQueue(c *gin.Context) {
 
 	// parse the doctorID to UUID
 	doctorUUID, err := uuid.Parse(doctorID)
+
 	if err != nil {
 		c.JSON(400, gin.H{"message": "Invalid doctor ID"})
 		return
 	}
 
 	// get the current queue
-	queue := services.GetCurrentQueue(doctorUUID)
+	queue, err := services.GetCurrentQueue(doctorUUID)
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+
+	// check if queue is nil
 	if queue == nil {
 		c.JSON(404, gin.H{"message": "No queue found"})
 		return
