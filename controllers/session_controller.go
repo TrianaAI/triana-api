@@ -59,12 +59,8 @@ func GenerateSessionResponse(c *gin.Context) {
 	log.Println("-----------------------------------")
 	log.Println("LLM Response:", LLMResponse.Reply)
 	if next_action := LLMResponse.NextAction; next_action == "CONTINUE_CHAT" {
-		// update the session with the new message and LLM response
-		err = services.UpdateChatHistory(session_id, input.NewMessage, LLMResponse.Reply)
-		if err != nil {
-			c.JSON(500, gin.H{"message": err.Error()})
-			return
-		}
+		// just continue
+
 	} else if next_action == "APPOINTMENT" {
 		// create queue
 		queue, err = services.GenerateQueue(session_id, LLMResponse.DoctorID)
