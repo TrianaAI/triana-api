@@ -70,9 +70,12 @@ func GetCurrentQueue(doctorID uuid.UUID) (*models.Queue, error) {
 
 	var queue models.Queue
 	err := config.DB.
-		Where("doctor_id = ?", doctorID).
-		Where("created_at >= ?", todayStart).
-		Order("number ASC").
+		Joins("JOIN sessions ON sessions.id = queues.session_id").
+		Where("queues.doctor_id = ?", doctorID).
+		Where("queues.created_at >= ?", todayStart).
+		Where("sessions.doctor_diagnosis = ''").
+		Order("queues.number ASC").
+		Preload("Session"). // optional: preload session if you need it
 		First(&queue).Error
 
 	if err != nil {

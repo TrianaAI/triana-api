@@ -89,6 +89,15 @@ func GenerateSessionResponse(c *gin.Context) {
 			return
 		}
 
+		// update the session's prediagnosis
+		existingSession.Prediagnosis = LLMResponse.PreDiagnosis
+
+		err = config.DB.Save(&existingSession).Error
+		if err != nil {
+			c.JSON(500, gin.H{"message": err.Error()})
+			return
+		}
+
 	} else {
 		c.JSON(500, gin.H{"message": "Invalid next action"})
 		return
