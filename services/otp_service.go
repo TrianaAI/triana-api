@@ -68,7 +68,7 @@ func sendOTPEmail(to string, otp string, token string) (map[string]interface{}, 
 		To:      to,
 		Subject: "Your OTP Code",
 		Body:    "",
-		From:    "test@example.com",
+		From:    "triana@ai.com",
 		HTML:    injectOtpIntoHtml(otp),
 	}
 

@@ -67,7 +67,15 @@ func GenerateQueue(sessionID string, doctorID string) (*models.Queue, error) {
 
 func GetCurrentQueue(doctorID uuid.UUID) *models.Queue {
 	var queue models.Queue
-	err := config.DB.Where("doctor_id = ?", doctorID).Order("number DESC").First(&queue).Error
+	err := config.DB.
+		Joins("JOIN sessions ON sessions.id = queues.session_id").
+		Where("queues.doctor_id = ?", doctorID).
+		Where("queues.created_at >= ?", todayStart).
+		Where("sessions.doctor_diagnosis = ''").
+		Order("queues.number ASC").
+		Preload("Session"). // optional: preload session if you need it
+		First(&queue).Error
+
 	if err != nil {
 		return nil
 	}
@@ -87,13 +95,13 @@ func GetDailyAppointments(doctorID uuid.UUID) int {
 	return int(count)
 }
 
-func SendQueueEmail(to string, queue int, currentQueue int, token string) (map[string]interface{}, error) {
+func SendQueueEmail(to string, queue int, currentQueue int, token string, doctor models.Doctor) (map[string]interface{}, error) {
 	email := schemas.Email{
 		To:      to,
 		Subject: "Queue Notification",
-		Body:    fmt.Sprintf("Your queue number is %d. The current queue number is %d.", queue, currentQueue),
-		From:    "test@example.com",
-		HTML:    "test",
+		Body:    "This is your queue number",
+		From:    "triana@ai.com",
+		HTML:    injectQueueIntoHTML(queue, currentQueue, doctor),
 	}
 
 	// URL of the email service
@@ -144,11 +152,11 @@ func injectQueueIntoHTML(queue int, currentQueue int, doctor models.Doctor) stri
 	// Convert the file content to a string
 	htmlString := string(htmlBytes)
 
-	htmlString = strings.Replace(htmlString, "{{queue}}", fmt.Sprintf("%d", queue), -1)
-	htmlString = strings.Replace(htmlString, "{{current_queue}}", fmt.Sprintf("%d", currentQueue), -1)
-	htmlString = strings.Replace(htmlString, "{{doctor_name}}", doctor.Name, -1)
-	htmlString = strings.Replace(htmlString, "{{doctor_speciality}}", doctor.Specialty, -1)
-	htmlString = strings.Replace(htmlString, "{{room_number}}", doctor.Roomno, -1)
+	htmlString = strings.ReplaceAll(htmlString, "{{queue_number}}", fmt.Sprintf("%d", queue))
+	htmlString = strings.ReplaceAll(htmlString, "{{current_queue_number}}", fmt.Sprintf("%d", currentQueue))
+	htmlString = strings.ReplaceAll(htmlString, "{{doctor_name}}", doctor.Name)
+	htmlString = strings.ReplaceAll(htmlString, "{{doctor_specialty}}", doctor.Specialty)
+	htmlString = strings.ReplaceAll(htmlString, "{{room_number}}", doctor.Roomno)
 
 	return htmlString
 }

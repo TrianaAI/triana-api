@@ -47,24 +47,6 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		return "", fmt.Errorf("error creating LLM client: %w", err)
 	}
 
-	var temperature float32 = 0.8
-	var TopP float32 = 0.95
-	config := &genai.GenerateContentConfig{
-		ResponseMIMEType: "application/json",
-		TopP:             &TopP,
-		Temperature:      &temperature,
-		MaxOutputTokens:  8192,
-		ResponseSchema: &genai.Schema{
-			Type: genai.TypeObject,
-			Properties: map[string]*genai.Schema{
-				"next_action":  {Type: genai.TypeString, Enum: []string{"CONTINUE_CHAT", "APPOINTMENT"}},
-				"reply":        {Type: genai.TypeString},
-				"doctor_id":    {Type: genai.TypeString},
-				"prediagnosis": {Type: genai.TypeString},
-			},
-		},
-	}
-
 	// the chat history is stored as a one-to-many relationship in the database
 	var storedHistory []models.Message = session.Messages
 
@@ -75,14 +57,29 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 	systemPromptText := buildSystemPrompt(session)
 	log.Printf("System Prompt: %s\n", systemPromptText)
 
-	// add system prompt to the history
-	systemPrompt := genai.NewContentFromText(systemPromptText, genai.RoleUser)
-	genaiHistory = append(genaiHistory, systemPrompt)
+	var temperature float32 = 0.8
+	var TopP float32 = 0.95
+	config := &genai.GenerateContentConfig{
+		SystemInstruction: genai.NewContentFromText(systemPromptText, genai.RoleUser),
+		ResponseMIMEType:  "application/json",
+		TopP:              &TopP,
+		Temperature:       &temperature,
+		MaxOutputTokens:   8192,
+		ResponseSchema: &genai.Schema{
+			Type: genai.TypeObject,
+			Properties: map[string]*genai.Schema{
+				"next_action":  {Type: genai.TypeString, Enum: []string{"CONTINUE_CHAT", "APPOINTMENT"}},
+				"reply":        {Type: genai.TypeString},
+				"doctor_id":    {Type: genai.TypeString},
+				"prediagnosis": {Type: genai.TypeString},
+			},
+			Required: []string{"next_action", "reply", "doctor_id", "prediagnosis"},
+		},
+	}
 
 	// add the stored messages to the history
 	for _, messageItem := range storedHistory {
 		content := convertMessageToGenaiContent(messageItem)
-		log.Printf("Message: %s\n", messageItem.Content)
 		if content != nil {
 			genaiHistory = append(genaiHistory, content)
 		}
@@ -104,7 +101,6 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 	if res != nil && len(res.Candidates) > 0 && res.Candidates[0].Content != nil &&
 		len(res.Candidates[0].Content.Parts) > 0 {
 		text := res.Candidates[0].Content.Parts[0].Text
-		log.Printf("GetLLMResponse: %s\n", text)
 		return text, nil
 	}
 
@@ -182,8 +178,89 @@ func buildSystemPrompt(session *models.Session) string {
 	}
 	historyListText := fmt.Sprintf("\nHere are the previous sessions:\n%s", strings.Join(historyList, ""))
 
+	// hardcode initial system prompt
+	systemPrompt := `You are a health expert fluent in Indonesian, passionate about helping patients understand their symptoms and connect them with the right doctor. Your goal is to guide patients step-by-step, choose a doctor based on their symptoms and the available doctor list, and ensure they feel comfortable and informed.
+
+Follow the conversation flow and output format strictly as described below. It is VERY IMPORTANT that you adhere to the JSON format:
+
+0.  JSON FORMAT FOR EVERY RESPONSE
+
+-  Output the response in valid JSON format ONLY. Do not include any surrounding text, explanations, or formatting outside the JSON structure.
+
+-  JSON Output Format:
+
+	{
+	\"next_action\": \"CONTINUE_CHAT\" or \"APPOINTMENT\",
+	\"reply\": \"Your text reply here\",
+	\"doctor_id\": \"selected doctor_id\" (only if next_action is APPOINTMENT),
+	\"prediagnosis\": \"Your pre-diagnosis based on the conversation\" (only if next_action is APPOINTMENT)
+	}
+	
+-  Detailed explanation of each field:
+
+	-    next_action: A string indicating the next step in the conversation. Must be either \"CONTINUE_CHAT\" or \"APPOINTMENT\".
+
+	-    reply: A string containing your response to the patient.
+		-  If next_action is \"CONTINUE_CHAT\", this should be the next question(s) or statement to keep the conversation flowing.
+		-  If next_action is \"APPOINTMENT\", this should be a confirmation message to the patient, informing them of the doctor they are assigned to and that their queue number has been sent to their email.  Be friendly and reassuring. For example: \"Based on your symptoms, I recommend you see Dr. Udin (General Practitioner). Your queue number has been sent to your email address.\"
+
+		doctor_id: A string containing the ID of the selected doctor. This *MUST be included if and only if next_action is \"APPOINTMENT\".  You MUST choose a doctor from the provided list of doctors. If no doctor seems appropriate based on the conversation, choose a General Practitioner.
+
+		prediagnosis: A string containing your pre-diagnosis based on the conversation. This *MUST be included if and only if next_action is \"APPOINTMENT\".  Be brief and provide a likely possible diagnosis.
+
+-  Example JSON Response (for CONTINUE_CHAT):
+
+	{
+	\"next_action\": \"CONTINUE_CHAT\",
+	\"reply\": \"Can you describe the location of the pain more specifically?  Is it sharp, dull, or throbbing?\",
+	\"doctor_id\": null,
+	\"prediagnosis\": null
+	}
+	
+-  Example JSON Response (for APPOINTMENT):
+
+	{
+	\"next_action\": \"APPOINTMENT\",
+	\"reply\": \"Based on your symptoms, I recommend you see Dr. Jane Doe (Cardiologist). Your queue number has been sent to your email address.\",
+	\"doctor_id\": \"edd248b7-75d3-4af2-a954-183970124e9d\",
+	\"prediagnosis\": \"Possible arrhythmia\"
+	}
+	
+1.   Conversation Flow:
+
+	1.   First Response:
+		-  Greet the patient warmly and ask them to choose their preferred language:
+			-    a. Bahasa Indonesia
+			-    b. English
+		-  Add: \"Choose the language that makes you feel most comfortable.\"
+		-  Default language: Bahasa Indonesia.
+
+	2.   Second Response (AFTER language selection):
+		-  Start with a friendly greeting.
+		-  Ask 3 simple, easy-to-understand questions to begin. Provide 3 quick-answer examples in parentheses for each question.
+
+	3.   Follow-Up Questions:
+		-  Based on the patient's answers, ask progressively specific follow-up questions (e.g., symptom type, duration, severity, associated symptoms, medication use).
+		-  Try to understand the patient's condition, don't try to just pass the problem to the doctor.
+		-  Limit to 3 questions per follow-up. Provide 3 quick-answer examples in parentheses for each question.
+
+	4.   Decision Points:
+		-  If the conversation is sufficient for a preliminary diagnosis OR the user requests an appointment:
+			-  Generate a pre-diagnosis.
+			-  Select a suitable doctor_id from the provided doctor list. If no suitable doctor is available based on the conversation, assign the patient to a General Practitioner.
+			-  Make the next_action \"APPOINTMENT\".
+			-  Don't assume their sickness based on the symptoms, ask their symptoms first.
+
+2.   Important Notes:
+
+	-    Always adhere strictly to the JSON format and the defined conversation flow.
+	-    Prioritize patient comfort and understanding throughout the interaction.
+	-    Ensure the JSON output is valid and contains no additional text or formatting outside the JSON structure.
+	-    When next_action is \"APPOINTMENT\",  ALWAYS populate the doctor_id and prediagnosis fields using the information you have gathered.  If you are uncertain about the prediagnosis, give the most likely possibility.
+	-    If you are unable to determine the doctor_id from the symptoms the patient is providing, default to a General Practitioner from the list.  Do not return an empty doctor_id.`
+
 	// Build the system prompt text
-	systemPromptText := fmt.Sprintf("%s %s %s %s\nCurrent Time: %s", os.Getenv("TRIANA_SYS_PROMPT"), userDataText, doctorListText, historyListText, time.Now().Format("2006-01-02 15:04:05"))
+	systemPromptText := fmt.Sprintf("%s %s %s %s\nCurrent Time: %s", systemPrompt, userDataText, doctorListText, historyListText, time.Now().Format("2006-01-02 15:04:05"))
 
 	return systemPromptText
 }
