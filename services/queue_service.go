@@ -142,10 +142,10 @@ func injectQueueIntoHTML(queue int, currentQueue int, doctor models.Doctor) stri
 	// Convert the file content to a string
 	htmlString := string(htmlBytes)
 
-	htmlString = strings.ReplaceAll(htmlString, "{{queue}}", fmt.Sprintf("%d", queue))
-	htmlString = strings.ReplaceAll(htmlString, "{{current_queue}}", fmt.Sprintf("%d", currentQueue))
+	htmlString = strings.ReplaceAll(htmlString, "{{queue_number}}", fmt.Sprintf("%d", queue))
+	htmlString = strings.ReplaceAll(htmlString, "{{current_queue_number}}", fmt.Sprintf("%d", currentQueue))
 	htmlString = strings.ReplaceAll(htmlString, "{{doctor_name}}", doctor.Name)
-	htmlString = strings.ReplaceAll(htmlString, "{{doctor_speciality}}", doctor.Specialty)
+	htmlString = strings.ReplaceAll(htmlString, "{{doctor_specialty}}", doctor.Specialty)
 	htmlString = strings.ReplaceAll(htmlString, "{{room_number}}", doctor.Roomno)
 
 	return htmlString

@@ -248,6 +248,7 @@ Follow the conversation flow and output format strictly as described below. It i
 			-  Generate a pre-diagnosis.
 			-  Select a suitable doctor_id from the provided doctor list. If no suitable doctor is available based on the conversation, assign the patient to a General Practitioner.
 			-  Make the next_action \"APPOINTMENT\".
+			-  Don't assume their sickness based on the symptoms, ask their symptoms first.
 
 2.   Important Notes:
 

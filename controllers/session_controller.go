@@ -70,6 +70,13 @@ func GenerateSessionResponse(c *gin.Context) {
 			return
 		}
 
+		// preload queue's doctor
+		err = config.DB.Preload("Doctor").Where("id = ?", queue.ID).First(&queue).Error
+		if err != nil {
+			c.JSON(500, gin.H{"message": err.Error()})
+			return
+		}
+
 		// send email to the user
 		currentQueue, err = services.GetCurrentQueue(queue.DoctorID)
 		if err != nil {
@@ -80,13 +87,6 @@ func GenerateSessionResponse(c *gin.Context) {
 		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"), queue.Doctor)
 		if err != nil {
 			log.Println("Error sending email:", err)
-		}
-
-		// preload queue's doctor
-		err = config.DB.Preload("Doctor").Where("id = ?", queue.ID).First(&queue).Error
-		if err != nil {
-			c.JSON(500, gin.H{"message": err.Error()})
-			return
 		}
 
 		// update the session's prediagnosis
