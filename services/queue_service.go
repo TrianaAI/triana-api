@@ -89,9 +89,9 @@ func SendQueueEmail(to string, queue int, currentQueue int, token string, doctor
 	email := schemas.Email{
 		To:      to,
 		Subject: "Queue Notification",
-		Body:    injectQueueIntoHTML(queue, currentQueue, doctor),
-		From:    "test@example.com",
-		HTML:    "test",
+		Body:    "This is your queue number",
+		From:    "triana@ai.com",
+		HTML:    injectQueueIntoHTML(queue, currentQueue, doctor),
 	}
 
 	// URL of the email service
@@ -142,11 +142,11 @@ func injectQueueIntoHTML(queue int, currentQueue int, doctor models.Doctor) stri
 	// Convert the file content to a string
 	htmlString := string(htmlBytes)
 
-	htmlString = strings.Replace(htmlString, "{{queue}}", fmt.Sprintf("%d", queue), -1)
-	htmlString = strings.Replace(htmlString, "{{current_queue}}", fmt.Sprintf("%d", currentQueue), -1)
-	htmlString = strings.Replace(htmlString, "{{doctor_name}}", doctor.Name, -1)
-	htmlString = strings.Replace(htmlString, "{{doctor_speciality}}", doctor.Specialty, -1)
-	htmlString = strings.Replace(htmlString, "{{room_number}}", doctor.Roomno, -1)
+	htmlString = strings.ReplaceAll(htmlString, "{{queue}}", fmt.Sprintf("%d", queue))
+	htmlString = strings.ReplaceAll(htmlString, "{{current_queue}}", fmt.Sprintf("%d", currentQueue))
+	htmlString = strings.ReplaceAll(htmlString, "{{doctor_name}}", doctor.Name)
+	htmlString = strings.ReplaceAll(htmlString, "{{doctor_speciality}}", doctor.Specialty)
+	htmlString = strings.ReplaceAll(htmlString, "{{room_number}}", doctor.Roomno)
 
 	return htmlString
 }
