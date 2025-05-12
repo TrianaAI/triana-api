@@ -51,6 +51,7 @@ func GenerateSessionResponse(c *gin.Context) {
 
 	// queue var
 	var queue *models.Queue = nil
+	var currentQueue *models.Queue
 
 	// from the LLM response determine the next action
 	log.Println("LLM Response Next Action:", LLMResponse.NextAction)
@@ -70,7 +71,7 @@ func GenerateSessionResponse(c *gin.Context) {
 		}
 
 		// send email to the user
-		currentQueue, err := services.GetCurrentQueue(queue.DoctorID)
+		currentQueue, err = services.GetCurrentQueue(queue.DoctorID)
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
 			return
@@ -79,6 +80,13 @@ func GenerateSessionResponse(c *gin.Context) {
 		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"))
 		if err != nil {
 			log.Println("Error sending email:", err)
+		}
+
+		// preload queue's doctor
+		err = config.DB.Preload("Doctor").Where("id = ?", queue.ID).First(&queue).Error
+		if err != nil {
+			c.JSON(500, gin.H{"message": err.Error()})
+			return
 		}
 
 	} else {
@@ -95,11 +103,12 @@ func GenerateSessionResponse(c *gin.Context) {
 
 	// send the response back to the client
 	c.JSON(200, gin.H{
-		"message":     "Chat history updated successfully",
-		"next_action": LLMResponse.NextAction,
-		"reply":       LLMResponse.Reply,
-		"session_id":  session_id,
-		"queue":       queue, // queue is nil if next_action is not APPOINTMENT
+		"message":       "Chat history updated successfully",
+		"next_action":   LLMResponse.NextAction,
+		"reply":         LLMResponse.Reply,
+		"session_id":    session_id,
+		"queue":         queue,        // queue is nil if next_action is not APPOINTMENT
+		"current_queue": currentQueue, // currentQueue is nil if next_action is not APPOINTMENT
 	})
 }
 
