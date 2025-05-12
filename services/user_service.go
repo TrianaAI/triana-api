@@ -10,6 +10,7 @@ import (
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
 	"github.com/BeeCodingAI/triana-api/schemas"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -65,4 +66,13 @@ func RegisterUser(input schemas.RegisterUserInput) (*models.User, error) {
 
 	// registration success, return the user object
 	return &existingUser, nil
+}
+
+func GetUserByID(userID uuid.UUID) *models.User {
+	var user models.User
+	err := config.DB.First(&user, "id = ?", userID).Error
+	if err != nil {
+		return nil
+	}
+	return &user
 }
