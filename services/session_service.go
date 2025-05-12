@@ -46,24 +46,6 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 		return "", fmt.Errorf("error creating LLM client: %w", err)
 	}
 
-	var temperature float32 = 0.8
-	var TopP float32 = 0.95
-	config := &genai.GenerateContentConfig{
-		ResponseMIMEType: "application/json",
-		TopP:             &TopP,
-		Temperature:      &temperature,
-		MaxOutputTokens:  8192,
-		ResponseSchema: &genai.Schema{
-			Type: genai.TypeObject,
-			Properties: map[string]*genai.Schema{
-				"next_action":  {Type: genai.TypeString, Enum: []string{"CONTINUE_CHAT", "APPOINTMENT"}},
-				"reply":        {Type: genai.TypeString},
-				"doctor_id":    {Type: genai.TypeString},
-				"prediagnosis": {Type: genai.TypeString},
-			},
-		},
-	}
-
 	// the chat history is stored as a one-to-many relationship in the database
 	var storedHistory []models.Message = session.Messages
 
@@ -74,14 +56,29 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 	systemPromptText := buildSystemPrompt(session)
 	log.Printf("System Prompt: %s\n", systemPromptText)
 
-	// add system prompt to the history
-	systemPrompt := genai.NewContentFromText(systemPromptText, genai.RoleUser)
-	genaiHistory = append(genaiHistory, systemPrompt)
+	var temperature float32 = 0.8
+	var TopP float32 = 0.95
+	config := &genai.GenerateContentConfig{
+		SystemInstruction: genai.NewContentFromText(systemPromptText, genai.RoleUser),
+		ResponseMIMEType:  "application/json",
+		TopP:              &TopP,
+		Temperature:       &temperature,
+		MaxOutputTokens:   8192,
+		ResponseSchema: &genai.Schema{
+			Type: genai.TypeObject,
+			Properties: map[string]*genai.Schema{
+				"next_action":  {Type: genai.TypeString, Enum: []string{"CONTINUE_CHAT", "APPOINTMENT"}},
+				"reply":        {Type: genai.TypeString},
+				"doctor_id":    {Type: genai.TypeString},
+				"prediagnosis": {Type: genai.TypeString},
+			},
+			Required: []string{"next_action", "reply", "doctor_id", "prediagnosis"},
+		},
+	}
 
 	// add the stored messages to the history
 	for _, messageItem := range storedHistory {
 		content := convertMessageToGenaiContent(messageItem)
-		log.Printf("Message: %s\n", messageItem.Content)
 		if content != nil {
 			genaiHistory = append(genaiHistory, content)
 		}
@@ -103,7 +100,6 @@ func GetLLMResponse(newMessage string, session *models.Session) (string, error) 
 	if res != nil && len(res.Candidates) > 0 && res.Candidates[0].Content != nil &&
 		len(res.Candidates[0].Content.Parts) > 0 {
 		text := res.Candidates[0].Content.Parts[0].Text
-		log.Printf("GetLLMResponse: %s\n", text)
 		return text, nil
 	}
 
