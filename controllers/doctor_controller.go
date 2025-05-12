@@ -4,6 +4,7 @@ import (
 	"github.com/BeeCodingAI/triana-api/services"
 	"github.com/BeeCodingAI/triana-api/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func DoctorDiagnose(c *gin.Context) {
@@ -25,4 +26,35 @@ func DoctorDiagnose(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Diagnosis saved successfully"})
+}
+
+func GetDoctorDetails(c *gin.Context) {
+	doctorID := c.Param("id")
+
+	// Parse doctorID to UUID
+	id, err := uuid.Parse(doctorID)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid doctor ID"})
+		return
+	}
+
+	// Fetch doctor details from the database
+	doctor := services.GetDoctorByID(doctorID)
+	if doctor == nil {
+		c.JSON(404, gin.H{"error": "Doctor not found"})
+		return
+	}
+
+	// Fetch appointment counts and current queue
+	totalAppointments := services.GetTotalAppointments(id)
+	dailyAppointments := services.GetDailyAppointments(id)
+	currentQueue := services.GetCurrentQueue(id)
+
+	// Respond with aggregated data
+	c.JSON(200, gin.H{
+		"name": doctor,
+		"appointment_count_all_time": totalAppointments,
+		"appointment_count_daily": dailyAppointments,
+		"current_queue": currentQueue, // Current queue ID
+	})
 }

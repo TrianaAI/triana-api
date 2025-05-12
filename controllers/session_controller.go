@@ -70,9 +70,9 @@ func GenerateSessionResponse(c *gin.Context) {
 		}
 
 		// send email to the user
-		currentQueue, err := services.GetCurrentQueue(queue.DoctorID)
-		if err != nil {
-			c.JSON(500, gin.H{"message": err.Error()})
+		currentQueue := services.GetCurrentQueue(queue.DoctorID)
+		if currentQueue == nil {
+			c.JSON(500, gin.H{"message": "Failed to retrieve current queue number"})
 			return
 		}
 

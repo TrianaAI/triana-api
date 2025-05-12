@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/BeeCodingAI/triana-api/config"
 	"github.com/BeeCodingAI/triana-api/models"
+	"github.com/google/uuid"
 )
 
 func GetAllDoctors() []models.Doctor {
@@ -12,4 +13,17 @@ func GetAllDoctors() []models.Doctor {
 		return nil
 	}
 	return doctors
+}
+
+func GetDoctorByID(doctorID string) *models.Doctor {
+	var doctor models.Doctor
+	id, err := uuid.Parse(doctorID)
+	if err != nil {
+		return nil
+	}
+	err = config.DB.First(&doctor, "id = ?", id).Error
+	if err != nil {
+		return nil
+	}
+	return &doctor
 }

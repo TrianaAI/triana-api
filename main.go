@@ -46,6 +46,12 @@ func main() {
 	// queue routes
 	r.GET("/queue/:doctor_id", controllers.GetCurrentQueue)
 
+	// doctor routes
+	r.GET("/doctor/:id", controllers.GetDoctorDetails)
+
+	// user routes
+	r.GET("/user/:id", controllers.GetUserDetails)
+
 	// test routes
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")

@@ -13,6 +13,7 @@ import (
 	"github.com/BeeCodingAI/triana-api/models"
 	"github.com/BeeCodingAI/triana-api/schemas"
 	"github.com/BeeCodingAI/triana-api/utils"
+	"github.com/google/uuid"
 	"google.golang.org/genai"
 	"gorm.io/gorm"
 )
@@ -246,4 +247,13 @@ func ParseJSON(input string) (schemas.LLMResponse, error) {
 	}
 
 	return responseJSON, nil
+}
+
+func GetSessionsByUserID(userID uuid.UUID) []models.Session {
+	var sessions []models.Session
+	err := config.DB.Where("user_id = ?", userID).Find(&sessions).Error
+	if err != nil {
+		return nil
+	}
+	return sessions
 }

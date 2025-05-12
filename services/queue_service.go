@@ -65,21 +65,26 @@ func GenerateQueue(sessionID string, doctorID string) (*models.Queue, error) {
 	return &queue, nil
 }
 
-func GetCurrentQueue(doctorID uuid.UUID) (*models.Queue, error) {
-	todayStart := time.Now().Truncate(24 * time.Hour)
-
+func GetCurrentQueue(doctorID uuid.UUID) *models.Queue {
 	var queue models.Queue
-	err := config.DB.
-		Where("doctor_id = ?", doctorID).
-		Where("created_at >= ?", todayStart).
-		Order("number ASC").
-		First(&queue).Error
-
+	err := config.DB.Where("doctor_id = ?", doctorID).Order("number DESC").First(&queue).Error
 	if err != nil {
-		return nil, fmt.Errorf("no queue found for today: %w", err)
+		return nil
 	}
+	return &queue
+}
 
-	return &queue, nil
+func GetTotalAppointments(doctorID uuid.UUID) int {
+	var count int64
+	config.DB.Model(&models.Queue{}).Where("doctor_id = ?", doctorID).Count(&count)
+	return int(count)
+}
+
+func GetDailyAppointments(doctorID uuid.UUID) int {
+	var count int64
+	today := time.Now().Truncate(24 * time.Hour)
+	config.DB.Model(&models.Queue{}).Where("doctor_id = ? AND created_at >= ?", doctorID, today).Count(&count)
+	return int(count)
 }
 
 func SendQueueEmail(to string, queue int, currentQueue int, token string) (map[string]interface{}, error) {
@@ -146,4 +151,13 @@ func injectQueueIntoHTML(queue int, currentQueue int, doctor models.Doctor) stri
 	htmlString = strings.Replace(htmlString, "{{room_number}}", doctor.Roomno, -1)
 
 	return htmlString
+}
+
+func GetQueueBySessionID(sessionID uuid.UUID) *models.Queue {
+	var queue models.Queue
+	err := config.DB.Where("session_id = ?", sessionID).Order("created_at DESC").First(&queue).Error
+	if err != nil {
+		return nil
+	}
+	return &queue
 }
