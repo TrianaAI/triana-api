@@ -85,11 +85,11 @@ func GetCurrentQueue(doctorID uuid.UUID) (*models.Queue, error) {
 	return &queue, nil
 }
 
-func SendQueueEmail(to string, queue int, currentQueue int, token string) (map[string]interface{}, error) {
+func SendQueueEmail(to string, queue int, currentQueue int, token string, doctor models.Doctor) (map[string]interface{}, error) {
 	email := schemas.Email{
 		To:      to,
 		Subject: "Queue Notification",
-		Body:    fmt.Sprintf("Your queue number is %d. The current queue number is %d.", queue, currentQueue),
+		Body:    injectQueueIntoHTML(queue, currentQueue, doctor),
 		From:    "test@example.com",
 		HTML:    "test",
 	}

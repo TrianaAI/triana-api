@@ -77,7 +77,7 @@ func GenerateSessionResponse(c *gin.Context) {
 			return
 		}
 
-		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"))
+		_, err = services.SendQueueEmail(existingSession.User.Email, queue.Number, currentQueue.Number, os.Getenv("EMAIL_TOKEN"), queue.Doctor)
 		if err != nil {
 			log.Println("Error sending email:", err)
 		}
