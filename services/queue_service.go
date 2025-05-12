@@ -66,6 +66,9 @@ func GenerateQueue(sessionID string, doctorID string) (*models.Queue, error) {
 }
 
 func GetCurrentQueue(doctorID uuid.UUID) *models.Queue {
+	todayStart := time.Now().Truncate(24 * time.Hour)
+
+	
 	var queue models.Queue
 	err := config.DB.
 		Joins("JOIN sessions ON sessions.id = queues.session_id").
