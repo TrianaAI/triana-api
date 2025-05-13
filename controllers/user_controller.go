@@ -93,14 +93,14 @@ func GetUserDetails(c *gin.Context) {
 		if session.CreatedAt.After(latestTimestamp) {
 			if currentSession != nil {
 				historySessions = append(historySessions, gin.H{
-					"session_id": currentSession["session_id"],
-					"bodytemp": currentSession["bodytemp"],
+					"session_id":       currentSession["session_id"],
+					"bodytemp":         currentSession["bodytemp"],
 					"doctor_diagnosis": currentSession["doctor_diagnosis"],
-					"heartrate": currentSession["heartrate"],
-					"height": currentSession["height"],
-					"prediagnosis": currentSession["prediagnosis"],
-					"weight": currentSession["weight"],
-					"created_at": currentSession["created_at"],
+					"heartrate":        currentSession["heartrate"],
+					"height":           currentSession["height"],
+					"prediagnosis":     currentSession["prediagnosis"],
+					"weight":           currentSession["weight"],
+					"created_at":       currentSession["created_at"],
 				})
 			}
 			latestTimestamp = session.CreatedAt
@@ -109,26 +109,26 @@ func GetUserDetails(c *gin.Context) {
 			queue := services.GetQueueBySessionID(session.ID)
 
 			currentSession = gin.H{
-				"queue": queue,
-				"session_id": session.ID,
-				"bodytemp": session.Bodytemp,
+				"queue":            queue,
+				"session_id":       session.ID,
+				"bodytemp":         session.Bodytemp,
 				"doctor_diagnosis": session.DoctorDiagnosis,
-				"heartrate": session.Heartrate,
-				"height": session.Height,
-				"prediagnosis": session.Prediagnosis,
-				"weight": session.Weight,
-				"created_at": session.CreatedAt, // Ensure created_at is set here
+				"heartrate":        session.Heartrate,
+				"height":           session.Height,
+				"prediagnosis":     session.Prediagnosis,
+				"weight":           session.Weight,
+				"created_at":       session.CreatedAt, // Ensure created_at is set here
 			}
 		} else {
 			historySessions = append(historySessions, gin.H{
-				"session_id": session.ID,
-				"bodytemp": session.Bodytemp,
+				"session_id":       session.ID,
+				"bodytemp":         session.Bodytemp,
 				"doctor_diagnosis": session.DoctorDiagnosis,
-				"heartrate": session.Heartrate,
-				"height": session.Height,
-				"prediagnosis": session.Prediagnosis,
-				"weight": session.Weight,
-				"created_at": session.CreatedAt, // Use session.CreatedAt directly
+				"heartrate":        session.Heartrate,
+				"height":           session.Height,
+				"prediagnosis":     session.Prediagnosis,
+				"weight":           session.Weight,
+				"created_at":       session.CreatedAt, // Use session.CreatedAt directly
 			})
 		}
 	}
@@ -141,11 +141,14 @@ func GetUserDetails(c *gin.Context) {
 	// Respond with the new structure
 	c.JSON(200, gin.H{
 		"user": gin.H{
-			"id": user.ID,
-			"name": user.Name,
-			"email": user.Email,
+			"id":          user.ID,
+			"name":        user.Name,
+			"email":       user.Email,
+			"gender":      user.Gender,
+			"nationality": user.Nationality,
+			"age":         utils.DateToAgeString(user.DOB),
 		},
-		"current_session": currentSession,
+		"current_session":  currentSession,
 		"history_sessions": historySessions,
 	})
 }
