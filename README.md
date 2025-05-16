@@ -123,15 +123,22 @@ Register a new user.
 
 ### ✅ `POST /verify-otp`
 
-Verify OTP and create a session.
+Verify OTP and create a session. For simple logic, re-enter the data from register to /verify-otp along with the OTP.
 
 **Request Body:**
 
 ```json
 {
+  "name": "Mario",
   "email": "new@gmail.com",
+  "nationality": "Indonesian",
+  "dob": "2004-04-01",
+  "weight": 40.2,
+  "gender": "male",
+  "height": 165.6,
+  "heartrate": 98.6,
+  "bodytemp": 35.5
   "OTP": "132267",
-  ...
 }
 ```
 
@@ -155,8 +162,9 @@ Send a new message in a session. It also determines the next action (continue ch
 {
   "message": "Chat history updated successfully",
   "reply": "...",
-  "next_action": "CONTINUE_CHAT", // or "APPOINTMENT
+  "next_action": "CONTINUE_CHAT", // or "APPOINTMENT"
   "session_id": "uuid"
+  "queue": queue // when next_action is "APPOINTMENT"
 }
 ```
 
