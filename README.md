@@ -1,89 +1,112 @@
 # Triana API
 
-Backend API for Triana, built with Go and Gin.
+Backend API for [Triana](https://api-dev.sportsnow.app), built with **Go** and **Gin**, powered by **PostgreSQL**, **Docker**, and **Gemini**.
 
-## Setup
+---
 
-1. Clone the repository:
+## 🚀 Features
+
+- User Registration with OTP Verification
+- AI-Powered Chat Sessions
+- Doctor Diagnosis Support
+- Appointment Queue Management
+- PostgreSQL for Persistence
+- Dockerized Setup
+- Gemini Model Integration
+- SMTP Support for Email Notifications
+
+---
+
+## 🧱 Tech Stack
+
+- Go + Gin (API Framework)
+- PostgreSQL (Database)
+- Docker (Containerization)
+- Gemini (AI integration)
+
+---
+
+## 🔧 Setup Instructions
+
+### 1. Clone the Repository
 
 ```bash
 git clone git@github.com:BeeCodingAI/triana-api.git
-```
-
-2. Navigate to the project directory:
-
-```bash
 cd triana-api
-```
+````
 
-3. Install the required dependencies:
+### 2. Install Dependencies
 
 ```bash
 go mod tidy
 ```
 
-4. Set up the environment variables. Create a `.env` file in the root directory and add follow .env.example.
-5. Run the application:
+### 3. Configure Environment
+
+Create a `.env` file in the root directory based on `.env.example`.
+
+### 4. Run the Application
 
 ```bash
 go run main.go
 ```
 
-or use `air` for live reloading during development:
+Or use [air](https://github.com/cosmtrek/air) for live reload:
 
 ```bash
 air
 ```
 
-6. The API will be available at `http://localhost:8080`, go to main.go to change the port.
+### 5. Run with Docker
 
-## Error Body Format
+Make sure Docker is installed, then run:
 
-When an error occurs, the API will send an error HTTP status code along with a JSON response body. The format of the error response will be as follows:
-
-```json
-{
-  "message": "Error message",
-  "other data": "Additional data if needed"
-}
+```bash
+docker compose up --build
 ```
 
-Other data will be included for the following cases:
+> The API will be available at [http://localhost:8080](http://localhost:8080)
 
-- **Validation Error**: If the request body is not valid, the API will return a 400 status code with a message indicating the validation error.
+---
+
+## ⚠️ Error Body Format
+
+Error responses follow this JSON structure:
 
 ```json
 {
   "message": "Error message",
   "details": {
-    "Field name": "Error type"
+    "FieldName": "Error description"
   }
 }
 ```
 
-## APIs
+---
 
-### **POST** /register
+## 📚 API Endpoints
 
-Register a new user. The request body should contain the user's email and password. The response will include a success message and the user (id, email and name).
+### 🔐 `POST /register`
 
-- **Example Request**:
+Register a new user.
+
+**Request Body:**
 
 ```json
 {
-    "name": "Mario",
-    "email" : "new@gmail.com",
-    "nationality": "Indonesian",
-    "dob": "2004-04-01", // use YYYY-MM-DD format
-    "weight": 40.2,
-    "gender": "male",
-    "height": 165.6,
-    "heartrate": 98.6,
-    "bodytemp": 35.5
+  "name": "Mario",
+  "email": "new@gmail.com",
+  "nationality": "Indonesian",
+  "dob": "2004-04-01",
+  "weight": 40.2,
+  "gender": "male",
+  "height": 165.6,
+  "heartrate": 98.6,
+  "bodytemp": 35.5
 }
 ```
 
-- **Example Response**:
+**Response:**
 
 ```json
 {
@@ -96,32 +119,29 @@ Register a new user. The request body should contain the user's email and passwo
 }
 ```
 
-### **POST** /verify-otp
+---
 
-Verify the OTP sent to the user's email. To avoid complexity, send the same data as the register request along with the user inputted OTP. The response will return a success message and the new session ID.
+### ✅ `POST /verify-otp`
 
-- **Example Request**:
+Verify OTP and create a session.
+
+**Request Body:**
 
 ```json
 {
-  "name": "Mario",
   "email": "new@gmail.com",
-  "nationality": "Indonesian",
-  "dob": "2004-04-01", // use YYYY-MM-DD format
-  "weight": 2,
-  "gender": "male",
-  "height": 165.6,
-  "heartrate": 98.6,
-  "bodytemp": 35.5,
-  "OTP": "132267"
+  "OTP": "132267",
+  ...
 }
 ```
 
-### **POST** /session/:id
+---
 
-This route is for user to send a new message to the chat session. The request body should contain only the new message. The response includes the reply from the AI, the session ID, message and the next action to be taken.
+### 💬 `POST /session/:id`
 
-- **Example Request**:
+Send a new message in a session. It also determines the next action (continue chat or schedule an appointment).
+
+**Request Body:**
 
 ```json
 {
@@ -129,22 +149,24 @@ This route is for user to send a new message to the chat session. The request bo
 }
 ```
 
-- **Example Response**:
+**Response:**
 
 ```json
 {
   "message": "Chat history updated successfully",
-  "next_action": "CONTINUE_CHAT",
-  "reply": "Hello! How can I help you today, Mario? I see you're Indonesian, 21 years, 1 month, and 4 days old. I also have your weight (40 kg), height (160 cm), heart rate (98.6 bpm), and body temperature (35.5°C). Is there anything specific you'd like to discuss?\n",
-  "session_id": "464879a4-07c8-4be0-9b7d-5ee1d05d5e23"
+  "reply": "...",
+  "next_action": "CONTINUE_CHAT", // or "APPOINTMENT
+  "session_id": "uuid"
 }
 ```
 
-### **POST** /session/:id/diagnose
+---
 
-This route allows a doctor to add a diagnosis to a specific session. The request body should contain the diagnosis string. The response confirms whether the diagnosis was saved successfully.
+### 🩺 `POST /session/:id/diagnose`
 
-- **Example Request**:
+Add diagnosis to a session.
+
+**Request Body:**
 
 ```json
 {
@@ -152,7 +174,7 @@ This route allows a doctor to add a diagnosis to a specific session. The request
 }
 ```
 
-- **Example Response**:
+**Response:**
 
 ```json
 {
@@ -160,50 +182,137 @@ This route allows a doctor to add a diagnosis to a specific session. The request
 }
 ```
 
-### **GET** /session/:id
+---
 
-Get the data for a specific session. The response will include the session ID, user data, and the chat history (messages in ASC order).
+### 📄 `GET /session/:id`
 
-- **Example Response**:
+Fetch session details and chat history.
+
+**Sample Response:**
 
 ```json
 {
-  "id": "464879a4-07c8-4be0-9b7d-5ee1d05d5e23",
-  "user_id": "89497617-d9e7-4403-bd39-cd7a2554cea0",
+  "id": "session-id",
   "user": {
-    "id": "89497617-d9e7-4403-bd39-cd7a2554cea0",
+    "id": "user-id",
     "name": "Mario",
-    "email": "new@gmail.com",
-    "nationality": "Indonesian",
-    "dob": "2004-04-01T00:00:00Z",
-    "created_at": "2025-05-05T09:11:51.066136Z",
-    "updated_at": "2025-05-05T09:18:09.772594Z",
-    "sessions": null
+    "email": "new@gmail.com"
   },
-  "weight": 40,
-  "height": 160,
-  "heartrate": 98.6,
-  "bodytemp": 35.5,
   "messages": [
     {
-      "id": "0a33a470-6440-48e2-9faa-cd74d74dbd0c",
       "role": "user",
-      "content": "Hello!",
-      "session_id": "464879a4-07c8-4be0-9b7d-5ee1d05d5e23",
-      "created_at": "2025-05-05T09:31:31.040801Z",
-      "updated_at": "2025-05-05T09:31:31.040801Z"
+      "content": "Hello!"
     },
     {
-      "id": "bf98b87d-f656-4996-a111-f6a3202cf074",
       "role": "triana",
-      "content": "Hello! How can I help you today, Mario? I see you're Indonesian, 21 years, 1 month, and 4 days old. I also have your weight (40 kg), height (160 cm), heart rate (98.6 bpm), and body temperature (35.5°C). Is there anything specific you'd like to discuss?\n",
-      "session_id": "464879a4-07c8-4be0-9b7d-5ee1d05d5e23",
-      "created_at": "2025-05-05T09:31:31.041801Z",
-      "updated_at": "2025-05-05T09:31:31.041801Z"
+      "content": "Hello Mario! ..."
     }
-  ],
-  "prediagnosis": "",
-  "created_at": "2025-05-05T09:18:09.76029Z",
-  "updated_at": "2025-05-05T09:18:09.76029Z"
+  ]
 }
 ```
+
+---
+
+### 📅 `GET /queue/:doctor_id/`
+
+Fetch current appointment queue for a doctor.
+
+---
+
+### 🧑‍⚕️ `GET /doctor/:id`
+
+Fetch doctor details for home page.
+
+**Sample Response:**
+```json
+{
+  "appointment_count_all_time": 2,
+  "appointment_count_daily": 2,
+  "current_queue": {
+    "id": "861ae8de-4a35-4640-9302-20d82f97e3f6",
+    "doctor_id": "f186afd5-a175-420e-b06e-d35a713d3616",
+    "session_id": "4cc39394-f2b8-4133-9ea1-c03215a58a72",
+    "session": {
+      "id": "4cc39394-f2b8-4133-9ea1-c03215a58a72",
+      "user_id": "22f94f7d-e96f-4da5-ad2b-6539d6f9543d",
+      "weight": 52,
+      "height": 170,
+      "heartrate": 90,
+      "bodytemp": 36,
+      "prediagnosis": "Possible influenza (flu)",
+      "created_at": "2025-05-16T11:17:53.123726Z",
+      "updated_at": "2025-05-16T11:29:38.812007Z"
+    },
+    "number": 1,
+    "created_at": "2025-05-16T11:29:31.672677Z",
+    "updated_at": "2025-05-16T11:29:31.672677Z"
+  },
+  "doctor": {
+    "id": "f186afd5-a175-420e-b06e-d35a713d3616",
+    "name": "dr. Udin",
+    "email": "udin@example.com",
+    "specialty": "General Practitioner",
+    "roomno": "A2"
+  }
+}
+```
+
+---
+
+### 📄 `GET /user/:id`
+
+Fetch user details, current session, and session history.
+
+**Sample Response:**
+
+```json
+{
+  "user": {
+    "id": "22f94f7d-e96f-4da5-ad2b-6539d6f9543d",
+    "name": "Mario",
+    "email": "new@gmail.com",
+    "gender": "Male",
+    "nationality": "Italian",
+    "age": "23"
+  },
+  "current_session": {
+    "queue": {
+      "id": "861ae8de-4a35-4640-9302-20d82f97e3f6",
+      "number": 1
+    },
+    "session_id": "4cc39394-f2b8-4133-9ea1-c03215a58a72",
+    "bodytemp": 36,
+    "doctor_diagnosis": "",
+    "heartrate": 90,
+    "height": 170,
+    "prediagnosis": "Possible influenza (flu)",
+    "weight": 52,
+    "created_at": "2025-05-16T11:29:38.812007Z"
+  },
+  "history_sessions": [
+    {
+      "session_id": "18e92407-992c-4f47-9126-0b9eac8bd520",
+      "bodytemp": 37,
+      "doctor_diagnosis": "Common cold",
+      "heartrate": 85,
+      "height": 170,
+      "prediagnosis": "Mild cold symptoms",
+      "weight": 51,
+      "created_at": "2025-01-10T08:45:23.123456Z"
+    }
+  ]
+}
+```
+
+---
+
+## 🧠 Gemini Integration
+
+Triana leverages [Gemini](https://deepmind.google/technologies/gemini/) for contextual and medical-like conversational intelligence. The AI uses your user metrics (age, weight, vitals, etc.) to provide personalized replies.
+
+---
+
+## 📎 Links
+
+* 🌐 [Triana Web App](https://triana.sportsnow.app)
+* 🐙 [GitHub Repository](https://github.com/BeeCodingAI/triana-api)
